@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import pool from "./db";
 
-async function main() {
+export async function initializeDatabase() {
   console.log("Initializing database tables...");
 
   const connection = await pool.getConnection();
@@ -448,7 +448,14 @@ async function main() {
     connection.release();
   }
 }
+// Only auto-run and exit process if executed directly via CLI
+if (typeof require !== "undefined" && require.main === module) {
+  initializeDatabase()
+    .then(() => process.exit(0))
+    .catch(() => process.exit(1));
+} else if (process.argv[1] && (process.argv[1].endsWith("db-init.ts") || process.argv[1].endsWith("db-init.js"))) {
+  initializeDatabase()
+    .then(() => process.exit(0))
+    .catch(() => process.exit(1));
+}
 
-main()
-  .then(() => process.exit(0))
-  .catch(() => process.exit(1));
