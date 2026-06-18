@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { formatCurrency } from "@/lib/utils";
 import { getPaymentSettings } from "@/lib/settings";
 import { BuyForm } from "./buy-form";
+import Image from "next/image";
 import crypto from "crypto";
 
 type Props = { params: Promise<{ slug: string }> };
@@ -85,41 +86,43 @@ export default async function BuyCoursePage({ params }: Props) {
       </div>
 
       {/* Payment instructions */}
-      <div className="mt-6 rounded-xl border bg-card p-6 space-y-4">
-        <h2 className="font-semibold">Payment instructions</h2>
+      <div className="mt-6 rounded-xl border bg-card p-6 space-y-5">
+        <h2 className="font-semibold text-lg">Payment Instructions</h2>
+
+        {/* QR Code Image */}
+        {paymentSettings.qr_image_url && (
+          <div className="flex flex-col items-center gap-3 py-4 bg-muted/30 rounded-lg">
+            <p className="text-sm font-medium text-muted-foreground">Scan the QR code to pay</p>
+            <div className="relative w-52 h-52 bg-white rounded-lg shadow-sm border p-2">
+              <Image
+                src={paymentSettings.qr_image_url}
+                alt="Payment QR Code"
+                fill
+                className="object-contain p-1"
+                unoptimized
+              />
+            </div>
+          </div>
+        )}
+
         {paymentSettings.upi_id && (
-          <div className="flex items-center justify-between text-sm">
+          <div className="flex items-center justify-between text-sm border-t pt-3">
             <span className="text-muted-foreground">UPI ID</span>
-            <span className="font-mono font-medium">{paymentSettings.upi_id}</span>
+            <span className="font-mono font-medium bg-muted px-2 py-0.5 rounded select-all">
+              {paymentSettings.upi_id}
+            </span>
           </div>
         )}
-        {paymentSettings.account_holder_name && (
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Account holder</span>
-            <span className="font-medium">{paymentSettings.account_holder_name}</span>
-          </div>
-        )}
-        {paymentSettings.bank_name && (
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Bank</span>
-            <span className="font-medium">{paymentSettings.bank_name}</span>
-          </div>
-        )}
-        {paymentSettings.account_number && (
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Account number</span>
-            <span className="font-mono font-medium">{paymentSettings.account_number}</span>
-          </div>
-        )}
-        {paymentSettings.ifsc_code && (
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">IFSC</span>
-            <span className="font-mono font-medium">{paymentSettings.ifsc_code}</span>
-          </div>
-        )}
+
         {paymentSettings.instructions && (
           <p className="text-sm text-muted-foreground border-t pt-3 whitespace-pre-line">
             {paymentSettings.instructions}
+          </p>
+        )}
+
+        {paymentSettings.support_contact && (
+          <p className="text-xs text-muted-foreground border-t pt-3">
+            Need help? Contact: <strong>{paymentSettings.support_contact}</strong>
           </p>
         )}
       </div>

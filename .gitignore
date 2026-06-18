@@ -42,3 +42,7 @@ prisma/migrations/
 # IDE
 .vscode/
 .idea/
+
+# uploads (keep .gitkeep)
+/public/uploads/*
+!/public/uploads/.gitkeep

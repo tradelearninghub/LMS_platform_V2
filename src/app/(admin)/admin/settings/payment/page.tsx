@@ -14,10 +14,6 @@ export default async function PaymentSettingsPage() {
     enabled: !!settings.enabled,
     qrImageUrl: settings.qr_image_url,
     upiId: settings.upi_id,
-    accountHolderName: settings.account_holder_name,
-    accountNumber: settings.account_number,
-    ifscCode: settings.ifsc_code,
-    bankName: settings.bank_name,
     instructions: settings.instructions,
     supportContact: settings.support_contact,
   };
@@ -27,10 +23,11 @@ export default async function PaymentSettingsPage() {
       <div>
         <h1 className="text-2xl font-semibold">QR Payment Settings</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Configure UPI, bank details, and payment instructions shown to students.
+          Upload your UPI QR code and configure payment instructions shown to students.
         </p>
       </div>
       <PaymentSettingsForm settings={mappedSettings} />
     </div>
   );
 }
+

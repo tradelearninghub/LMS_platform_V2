@@ -307,26 +307,17 @@ export async function updatePaymentSettingsAction(_prev: unknown, formData: Form
   const enabled = formData.get("enabled") === "on";
   const qrImageUrl = (formData.get("qrImageUrl") as string) || null;
   const upiId = (formData.get("upiId") as string) || null;
-  const accountHolderName = (formData.get("accountHolderName") as string) || null;
-  const accountNumber = (formData.get("accountNumber") as string) || null;
-  const ifscCode = (formData.get("ifscCode") as string) || null;
-  const bankName = (formData.get("bankName") as string) || null;
   const instructions = (formData.get("instructions") as string) || null;
   const supportContact = (formData.get("supportContact") as string) || null;
 
   await execute(
     `UPDATE payment_settings 
-     SET enabled = ?, qr_image_url = ?, upi_id = ?, account_holder_name = ?, 
-         account_number = ?, ifsc_code = ?, bank_name = ?, instructions = ?, support_contact = ? 
+     SET enabled = ?, qr_image_url = ?, upi_id = ?, instructions = ?, support_contact = ? 
      WHERE id = 'default'`,
     [
       enabled,
       qrImageUrl,
       upiId,
-      accountHolderName,
-      accountNumber,
-      ifscCode,
-      bankName,
       instructions,
       supportContact,
     ]
