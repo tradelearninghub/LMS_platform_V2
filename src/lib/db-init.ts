@@ -386,6 +386,75 @@ export async function initializeDatabase() {
       console.log("Seeded default courses, modules, and lessons.");
     }
 
+    // Seeding course-forex-basis
+    const [forexBasisRows] = await connection.query("SELECT id FROM courses WHERE slug = 'forex-basis'");
+    if ((forexBasisRows as any[]).length === 0) {
+      await connection.query(
+        `INSERT INTO courses (id, title, slug, short_description, description, price_cents, currency, status, is_featured, category_id, seo_title, seo_description, thumbnail_url)
+         VALUES ('course-forex-basis', 'Forex Basis', 'forex-basis', 
+                 'Learn the fundamentals of Forex trading, chart analysis, and risk management.',
+                 'Learn the fundamentals of Forex trading, chart analysis, and risk management with practitioner-led video lessons.',
+                 199900, 'INR', 'PUBLISHED', true, ?, 'Forex Basis — Trade Learning Hub',
+                 'Learn the fundamentals of Forex trading.', '/images/forex-basis.png')`,
+        [categoryId]
+      );
+      // Seed default module/lesson
+      await connection.query(
+        "INSERT INTO modules (id, course_id, title, sort_order) VALUES ('mod-fb-1', 'course-forex-basis', 'Module 1 — Forex Basics Introduction', 0)"
+      );
+      await connection.query(
+        `INSERT INTO lessons (id, module_id, title, description, video_url, duration_seconds, notes, sort_order, is_preview)
+         VALUES ('les-fb-1-1', 'mod-fb-1', 'Lesson 1: Introduction to Forex Market', 'Basics of Forex market.', 'https://drive.google.com/file/d/EXAMPLE/preview', 600, 'Notes.', 0, true)`
+      );
+      console.log("Seeded Forex Basis course.");
+    }
+
+    // Seeding course-forex-advance
+    const [forexAdvanceRows] = await connection.query("SELECT id FROM courses WHERE slug = 'forex-advance'");
+    if ((forexAdvanceRows as any[]).length === 0) {
+      await connection.query(
+        `INSERT INTO courses (id, title, slug, short_description, description, price_cents, currency, status, is_featured, category_id, seo_title, seo_description, thumbnail_url)
+         VALUES ('course-forex-advance', 'Forex Advance', 'forex-advance', 
+                 'Master advanced Forex trading strategies, smart money concepts, risk management.',
+                 'Master advanced Forex trading strategies, smart money concepts, risk management with practitioner-led video lessons.',
+                 219900, 'INR', 'PUBLISHED', true, ?, 'Forex Advance — Trade Learning Hub',
+                 'Master advanced Forex trading.', '/images/forex-advance.png')`,
+        [categoryId]
+      );
+      // Seed default module/lesson
+      await connection.query(
+        "INSERT INTO modules (id, course_id, title, sort_order) VALUES ('mod-fa-1', 'course-forex-advance', 'Module 1 — Advanced Forex Concepts', 0)"
+      );
+      await connection.query(
+        `INSERT INTO lessons (id, module_id, title, description, video_url, duration_seconds, notes, sort_order, is_preview)
+         VALUES ('les-fa-1-1', 'mod-fa-1', 'Lesson 1: Advanced Market Structure', 'Advanced structure of Forex market.', 'https://drive.google.com/file/d/EXAMPLE/preview', 600, 'Notes.', 0, true)`
+      );
+      console.log("Seeded Forex Advance course.");
+    }
+
+    // Seeding course-stock-market-basics
+    const [stockBasicsRows] = await connection.query("SELECT id FROM courses WHERE slug = 'stock-market-basics-for-beginners'");
+    if ((stockBasicsRows as any[]).length === 0) {
+      await connection.query(
+        `INSERT INTO courses (id, title, slug, short_description, description, price_cents, currency, status, is_featured, category_id, seo_title, seo_description, thumbnail_url)
+         VALUES ('course-stock-basics', 'Stock Market Basics for Beginners', 'stock-market-basics-for-beginners', 
+                 'Learn the fundamentals of the stock market, trading basics, chart analysis.',
+                 'Learn the fundamentals of the stock market, trading basics, chart analysis with practitioner-led video lessons.',
+                 199900, 'INR', 'PUBLISHED', true, ?, 'Stock Market Basics for Beginners — Trade Learning Hub',
+                 'Learn the stock market basics.', '/images/stock-basics.png')`,
+        [categoryId]
+      );
+      // Seed default module/lesson
+      await connection.query(
+        "INSERT INTO modules (id, course_id, title, sort_order) VALUES ('mod-sb-1', 'course-stock-basics', 'Module 1 — Stock Market Basics', 0)"
+      );
+      await connection.query(
+        `INSERT INTO lessons (id, module_id, title, description, video_url, duration_seconds, notes, sort_order, is_preview)
+         VALUES ('les-sb-1-1', 'mod-sb-1', 'Lesson 1: Introduction to Stock Market', 'Introduction to Stock Market.', 'https://drive.google.com/file/d/EXAMPLE/preview', 600, 'Notes.', 0, true)`
+      );
+      console.log("Seeded Stock Market Basics for Beginners course.");
+    }
+
     // 5. Seeding Email templates
     const defaultBlocks = (title: string, body: string) =>
       JSON.stringify([

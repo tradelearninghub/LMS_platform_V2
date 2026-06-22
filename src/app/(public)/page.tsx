@@ -1,284 +1,283 @@
 import Link from "next/link";
 import { query } from "@/lib/db";
-import { formatCurrency } from "@/lib/utils";
 import { getSiteSettings } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
+const DEFAULT_COURSES = [
+  {
+    id: "forex-basis",
+    title: "Forex Basis",
+    slug: "forex-basis",
+    price: "₹1999",
+    discount: "80% OFF",
+    image: "/images/forex-basis.png",
+    description: "Learn the fundamentals of Forex trading, chart analysis, and risk management with...",
+    curriculum: [
+      "Introduction to Forex Market",
+      "Currency Pairs & Market Structure",
+      "TradingView & MT4/MT5 Setup"
+    ]
+  },
+  {
+    id: "forex-advance",
+    title: "Forex Advance",
+    slug: "forex-advance",
+    price: "₹2199",
+    discount: "80% OFF",
+    image: "/images/forex-advance.png",
+    description: "Master advanced Forex trading strategies, smart money concepts, risk management...",
+    curriculum: [
+      "Advanced Market Structure",
+      "Smart Money Concepts (SMC)",
+      "Liquidity & Order Blocks"
+    ]
+  },
+  {
+    id: "stock-market-basics-for-beginners",
+    title: "Stock Market Basics for Beginners",
+    slug: "stock-market-basics-for-beginners",
+    price: "₹1999",
+    discount: "80% OFF",
+    image: "/images/stock-basics.png",
+    description: "Learn the fundamentals of the stock market, trading basics, chart analysis, a...",
+    curriculum: [
+      "Introduction to stock market",
+      "How Stock Market Works",
+      "Demat & Trading Account"
+    ]
+  }
+];
+
 export default async function HomePage() {
   const site = await getSiteSettings();
-  const courses = await query(
-    "SELECT * FROM courses WHERE status = 'PUBLISHED' ORDER BY is_featured DESC, created_at DESC LIMIT 6"
+  
+  // Query all published courses from database to resolve links dynamically if they exist
+  const dbCourses = await query(
+    "SELECT * FROM courses WHERE status = 'PUBLISHED'"
   ).catch(() => []);
 
-  const totalStudents = await query("SELECT COUNT(*) AS count FROM users WHERE role = 'STUDENT'").catch(() => [{ count: 0 }]);
-  const totalCourses = await query("SELECT COUNT(*) AS count FROM courses WHERE status = 'PUBLISHED'").catch(() => [{ count: 0 }]);
-  const totalEnrollments = await query("SELECT COUNT(*) AS count FROM enrollments").catch(() => [{ count: 0 }]);
+  const findCourseUrl = (slug: string) => {
+    const dbCourse = dbCourses.find((c: any) => c.slug === slug);
+    return dbCourse ? `/courses/${dbCourse.slug}` : `/courses/${slug}`;
+  };
 
   return (
-    <>
+    <div className="bg-white">
       {/* ═══ Hero Section ═══ */}
-      <section className="relative overflow-hidden">
-        {/* Background decoration */}
-        <div className="absolute inset-0 -z-10">
-          <div className="absolute top-0 right-0 w-[600px] h-[600px] rounded-full bg-primary/5 blur-3xl translate-x-1/2 -translate-y-1/2" />
-          <div className="absolute bottom-0 left-0 w-[400px] h-[400px] rounded-full bg-primary/8 blur-3xl -translate-x-1/2 translate-y-1/2" />
-        </div>
-
-        <div className="container py-24 md:py-36">
-          <div className="max-w-3xl">
-            <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 text-xs font-semibold text-primary ring-1 ring-primary/20">
-              <span className="inline-block w-2 h-2 rounded-full bg-primary animate-pulse" />
-              {site.site_name || "Trade Learning Hub"} — Now Live
-            </span>
-            <h1 className="mt-6 text-4xl md:text-6xl font-bold tracking-tight leading-[1.1]">
-              Learn to trade with{" "}
-              <span className="bg-gradient-to-r from-primary to-blue-400 bg-clip-text text-transparent">
-                structured, practitioner-led
-              </span>{" "}
-              courses.
-            </h1>
-            <p className="mt-6 text-lg md:text-xl text-muted-foreground max-w-2xl leading-relaxed">
-              Stock market mastery, technical analysis, and proven strategies —
-              delivered through video lessons you can pace yourself, with
-              lifetime access on approval.
-            </p>
-            <div className="mt-10 flex flex-wrap gap-4">
-              <Link
-                href="/courses"
-                className="rounded-lg bg-primary px-8 py-3.5 text-primary-foreground font-semibold hover:opacity-90 transition-opacity shadow-lg shadow-primary/25"
-              >
-                Browse Courses
-              </Link>
-              <Link
-                href="/register"
-                className="rounded-lg border-2 border-input px-8 py-3.5 font-semibold hover:bg-accent hover:border-accent transition-all"
-              >
-                Create Free Account
-              </Link>
-            </div>
-
-            {/* Trust stats */}
-            <div className="mt-12 flex flex-wrap gap-8 md:gap-12 pt-8 border-t border-border/50">
-              <div>
-                <p className="text-3xl font-bold text-foreground">{totalStudents[0]?.count || "0"}+</p>
-                <p className="text-sm text-muted-foreground mt-1">Students enrolled</p>
-              </div>
-              <div>
-                <p className="text-3xl font-bold text-foreground">{totalCourses[0]?.count || "0"}+</p>
-                <p className="text-sm text-muted-foreground mt-1">Published courses</p>
-              </div>
-              <div>
-                <p className="text-3xl font-bold text-foreground">{totalEnrollments[0]?.count || "0"}+</p>
-                <p className="text-sm text-muted-foreground mt-1">Total enrollments</p>
-              </div>
-              <div>
-                <p className="text-3xl font-bold text-foreground">∞</p>
-                <p className="text-sm text-muted-foreground mt-1">Lifetime access</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ═══ Featured Courses ═══ */}
-      <section className="border-t bg-muted/20">
-        <div className="container py-20">
-          <div className="flex items-end justify-between mb-10">
-            <div>
-              <span className="inline-block text-xs font-semibold uppercase tracking-wider text-primary mb-2">
-                Popular Courses
+      <section className="py-20 md:py-28 bg-white overflow-hidden">
+        <div className="container mx-auto px-4 max-w-6xl">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+            {/* Left text column */}
+            <div className="lg:col-span-7 space-y-6 text-left">
+              <span className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-[#3b82f6]">
+                Premium Trading Education
               </span>
-              <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Featured courses</h2>
-              <p className="text-muted-foreground mt-2">Hand-picked starting points for your trading journey.</p>
-            </div>
-            <Link href="/courses" className="hidden md:inline-flex text-sm font-medium text-primary hover:underline items-center gap-1">
-              View all courses
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-              </svg>
-            </Link>
-          </div>
-
-          {courses.length === 0 ? (
-            <div className="rounded-2xl border-2 border-dashed p-16 text-center text-muted-foreground">
-              <p className="text-lg font-medium">No courses published yet</p>
-              <p className="mt-2 text-sm">An admin can add courses from the dashboard.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {courses.map((c) => (
+              <h1 className="text-5xl md:text-6xl font-extrabold tracking-tight text-[#0f172a] leading-[1.1]">
+                Trade with <br />
+                <span className="text-[#94a3b8]">precision.</span>
+              </h1>
+              <p className="text-slate-500 text-sm md:text-base leading-relaxed max-w-xl">
+                Carefully crafted courses designed for market mastery. Learn professional trading strategies, risk management, and technical analysis.
+              </p>
+              <div className="pt-4 flex flex-wrap gap-4">
                 <Link
-                  key={c.id}
-                  href={`/courses/${c.slug}`}
-                  className="group rounded-2xl border bg-card overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+                  href="/courses"
+                  className="rounded-full bg-[#0f172a] hover:bg-slate-800 px-8 py-3 text-xs font-semibold text-white transition-colors shadow-sm"
                 >
-                  <div className="aspect-video bg-gradient-to-br from-primary/20 via-primary/10 to-accent/30 relative">
-                    {c.is_featured === 1 && (
-                      <span className="absolute top-3 left-3 rounded-full bg-primary px-2.5 py-0.5 text-[11px] font-semibold text-primary-foreground uppercase tracking-wide">
-                        Featured
-                      </span>
-                    )}
-                  </div>
-                  <div className="p-5">
-                    <h3 className="font-semibold text-lg group-hover:text-primary transition-colors line-clamp-1">{c.title}</h3>
-                    {c.short_description && (
-                      <p className="mt-2 text-sm text-muted-foreground line-clamp-2">
-                        {c.short_description}
-                      </p>
-                    )}
-                    <div className="mt-4 flex items-center justify-between">
-                      <span className="text-xl font-bold">
-                        {c.price_cents === 0
-                          ? "Free"
-                          : formatCurrency(c.price_cents, c.currency)}
-                      </span>
-                      <span className="text-xs text-primary font-medium group-hover:underline">
-                        View details →
-                      </span>
-                    </div>
-                  </div>
+                  Explore Courses
                 </Link>
-              ))}
+                <Link
+                  href="/login"
+                  className="rounded-full bg-[#f8fafc] border border-slate-200 hover:bg-slate-50 px-8 py-3 text-xs font-semibold text-slate-700 transition-all"
+                >
+                  Sign In
+                </Link>
+              </div>
             </div>
-          )}
 
-          <div className="mt-8 text-center md:hidden">
-            <Link href="/courses" className="text-sm font-medium text-primary hover:underline">
-              View all courses →
-            </Link>
+            {/* Right graphic column */}
+            <div className="lg:col-span-5 flex justify-center lg:justify-end">
+              <div className="w-full max-w-[440px] aspect-[1.1] rounded-[2rem] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-slate-50 bg-[#07090e]">
+                <img
+                  src="/images/hero-chart.png"
+                  alt="Stock Market Trading Terminal Chart"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* ═══ Why Choose Us ═══ */}
-      <section className="container py-24">
-        <div className="text-center mb-14">
-          <span className="inline-block text-xs font-semibold uppercase tracking-wider text-primary mb-2">
-            Why Choose Us
-          </span>
-          <h2 className="text-2xl md:text-3xl font-bold tracking-tight">Everything you need to succeed</h2>
-          <p className="mt-3 text-muted-foreground max-w-xl mx-auto">
-            Our platform is built for serious learners who want structured, practitioner-led education.
-          </p>
-        </div>
-
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[
-            {
-              icon: "📚",
-              title: "Structured Curriculum",
-              desc: "Course → Module → Lesson hierarchy keeps your learning on track with a clear progression path.",
-            },
-            {
-              icon: "💳",
-              title: "Simple QR Payments",
-              desc: "Pay via UPI QR code. Upload your screenshot and admin approves — no complex payment gateways.",
-            },
-            {
-              icon: "♾️",
-              title: "Lifetime Access",
-              desc: "All courses come with unlimited, lifetime access — no rentals, no resets, no subscriptions.",
-            },
-            {
-              icon: "🎥",
-              title: "Video Lessons",
-              desc: "Learn at your own pace with high-quality video lessons you can rewatch anytime.",
-            },
-            {
-              icon: "📊",
-              title: "Progress Tracking",
-              desc: "Track your completion progress across all enrolled courses with visual indicators.",
-            },
-            {
-              icon: "📜",
-              title: "Invoice Downloads",
-              desc: "Download professional PDF receipts for every purchase directly from your dashboard.",
-            },
-          ].map((f) => (
-            <div
-              key={f.title}
-              className="rounded-2xl border bg-card p-7 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 group"
-            >
-              <span className="text-3xl block mb-4">{f.icon}</span>
-              <h3 className="font-semibold text-lg">{f.title}</h3>
-              <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
+      {/* ═══ Stats Banner ═══ */}
+      <section className="py-12 bg-white border-t border-b border-slate-100">
+        <div className="container mx-auto px-4 max-w-6xl">
+          <div className="grid grid-cols-3 gap-4 max-w-3xl mx-auto text-center">
+            <div className="space-y-1">
+              <p className="text-3xl md:text-4xl font-extrabold text-[#0f172a]">10k+</p>
+              <p className="text-[10px] md:text-xs font-semibold text-slate-400 uppercase tracking-widest">Active Traders</p>
             </div>
-          ))}
+            <div className="space-y-1">
+              <p className="text-3xl md:text-4xl font-extrabold text-[#0f172a]">50+</p>
+              <p className="text-[10px] md:text-xs font-semibold text-slate-400 uppercase tracking-widest">Premium Strategies</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-3xl md:text-4xl font-extrabold text-[#0f172a]">24/7</p>
+              <p className="text-[10px] md:text-xs font-semibold text-slate-400 uppercase tracking-widest">Community Access</p>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* ═══ How It Works ═══ */}
-      <section className="border-t bg-muted/20">
-        <div className="container py-24">
-          <div className="text-center mb-14">
-            <span className="inline-block text-xs font-semibold uppercase tracking-wider text-primary mb-2">
-              Getting Started
-            </span>
-            <h2 className="text-2xl md:text-3xl font-bold tracking-tight">How it works</h2>
-            <p className="mt-3 text-muted-foreground max-w-xl mx-auto">
-              Get started in just 3 simple steps.
+      {/* ═══ Latest Courses Section ═══ */}
+      <section className="py-20 md:py-24 bg-[#fafafa]">
+        <div className="container mx-auto px-4 max-w-6xl">
+          <div className="text-center max-w-xl mx-auto mb-16 space-y-4">
+            <h2 className="text-3xl md:text-4xl font-extrabold text-[#0f172a] tracking-tight">Latest Courses</h2>
+            <p className="text-slate-500 text-xs md:text-sm leading-relaxed">
+              Enhance your skills with our most recently updated curriculum. <br />
+              Start your journey today.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-            {[
-              {
-                step: "01",
-                title: "Create Account",
-                desc: "Sign up for free, verify your email, and set up your profile.",
-              },
-              {
-                step: "02",
-                title: "Choose & Pay",
-                desc: "Browse courses, scan the UPI QR, and upload your payment screenshot.",
-              },
-              {
-                step: "03",
-                title: "Start Learning",
-                desc: "Once approved, access all your course content with lifetime access.",
-              },
-            ].map((s) => (
-              <div key={s.step} className="text-center">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 text-primary font-bold text-xl mb-5">
-                  {s.step}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            {DEFAULT_COURSES.map((course) => (
+              <div key={course.id} className="bg-white rounded-3xl border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.02)] overflow-hidden flex flex-col hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-all duration-300">
+                {/* Course cover and discount badges */}
+                <div className="relative aspect-[1.3] bg-slate-50 overflow-hidden">
+                  <img src={course.image} alt={course.title} className="w-full h-full object-cover" />
+                  <div className="absolute top-4 right-4 flex items-center gap-2">
+                    <span className="bg-[#10b981] text-white text-[9px] font-extrabold px-2.5 py-1 rounded-md uppercase tracking-wider shadow-sm">
+                      {course.discount}
+                    </span>
+                    <span className="bg-[#3b82f6] text-white text-[9px] font-extrabold px-2.5 py-1 rounded-md shadow-sm">
+                      {course.price}
+                    </span>
+                  </div>
                 </div>
-                <h3 className="font-semibold text-lg">{s.title}</h3>
-                <p className="mt-2 text-sm text-muted-foreground">{s.desc}</p>
+
+                {/* Course core details */}
+                <div className="p-7 flex-1 flex flex-col">
+                  <h3 className="text-lg font-bold text-[#0f172a] mb-2 leading-snug">{course.title}</h3>
+                  <p className="text-[11px] text-slate-400 mb-6 leading-relaxed line-clamp-2">
+                    {course.description}
+                  </p>
+
+                  <div className="mb-8">
+                    <h4 className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-4">
+                      Curriculum Includes:
+                    </h4>
+                    <ul className="space-y-2.5">
+                      {course.curriculum.map((item, idx) => (
+                        <li key={idx} className="flex items-start gap-2.5 text-xs text-slate-600">
+                          <span className="text-[#3b82f6] font-semibold mt-0.5">✓</span>
+                          <span className="leading-tight">{item}</span>
+                        </li>
+                      ))}
+                      <li className="text-[11px] text-slate-400 italic pt-1 pl-1">
+                        ...and more modules
+                      </li>
+                    </ul>
+                  </div>
+
+                  <div className="mt-auto">
+                    <Link
+                      href={findCourseUrl(course.slug)}
+                      className="w-full inline-flex items-center justify-center bg-[#e0e7ff] hover:bg-[#c7d2fe] text-[#4f46e5] font-bold text-xs py-3 rounded-xl transition-all duration-200"
+                    >
+                      Join Now
+                    </Link>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ═══ CTA Banner ═══ */}
-      <section className="container py-24">
-        <div className="rounded-3xl bg-gradient-to-r from-primary to-blue-500 px-8 py-16 md:px-16 text-center relative overflow-hidden">
-          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImEiIHBhdHRlcm5Vbml0cz0idXNlclNwYWNlT25Vc2UiIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCI+PGNpcmNsZSBjeD0iMTAiIGN5PSIxMCIgcj0iMSIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjEpIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCBmaWxsPSJ1cmwoI2EpIiB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIi8+PC9zdmc+')] opacity-50" />
-          <div className="relative z-10">
-            <h2 className="text-3xl md:text-4xl font-bold text-white">
-              Ready to start your trading journey?
-            </h2>
-            <p className="mt-4 text-white/80 max-w-xl mx-auto text-lg">
-              Join our growing community of learners. Pick a course and start today.
-            </p>
-            <div className="mt-8 flex flex-wrap justify-center gap-4">
-              <Link
-                href="/courses"
-                className="rounded-lg bg-white text-primary px-8 py-3.5 font-semibold hover:bg-white/90 transition-opacity shadow-lg"
-              >
-                Browse Courses
-              </Link>
-              <Link
-                href="/register"
-                className="rounded-lg border-2 border-white/30 text-white px-8 py-3.5 font-semibold hover:bg-white/10 transition-all"
-              >
-                Sign Up Free
-              </Link>
+      {/* ═══ Why Choose Us Section ═══ */}
+      <section className="py-20 md:py-24 bg-white">
+        <div className="container mx-auto px-4 max-w-6xl">
+          <div className="text-center max-w-xl mx-auto mb-16 space-y-3">
+            <span className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-[#3b82f6]">
+              Our Advantage
+            </span>
+            <h2 className="text-3xl md:text-4xl font-extrabold text-[#0f172a] tracking-tight">Why Choose Us</h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            {/* Mentorship */}
+            <div className="space-y-5 group">
+              <div className="aspect-[1.3] rounded-3xl overflow-hidden bg-slate-50 border border-slate-100 shadow-sm">
+                <img
+                  src="/images/why-mentorship.png"
+                  alt="Expert Mentorship Office Brainstorming Session"
+                  className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300"
+                />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-lg font-bold text-[#0f172a]">Expert Mentorship</h3>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Learn from seasoned traders with over 10 years of experience in global markets. Our mentors provide...
+                </p>
+                <a
+                  href="#"
+                  className="inline-flex items-center gap-1.5 text-[9px] font-bold text-[#3b82f6] hover:text-blue-700 uppercase tracking-wider"
+                >
+                  Read More <span className="text-xs font-medium">˅</span>
+                </a>
+              </div>
+            </div>
+
+            {/* Live Trading Sessions */}
+            <div className="space-y-5 group">
+              <div className="aspect-[1.3] rounded-3xl overflow-hidden bg-slate-50 border border-slate-100 shadow-sm">
+                <img
+                  src="/images/why-live-sessions.png"
+                  alt="Live Trading Candlestick Terminal Screen"
+                  className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300"
+                />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-lg font-bold text-[#0f172a]">Live Trading Sessions</h3>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Experience real-time market analysis and trade execution. Watch how professionals handle live...
+                </p>
+                <a
+                  href="#"
+                  className="inline-flex items-center gap-1.5 text-[9px] font-bold text-[#3b82f6] hover:text-blue-700 uppercase tracking-wider"
+                >
+                  Read More <span className="text-xs font-medium">˅</span>
+                </a>
+              </div>
+            </div>
+
+            {/* Active Community */}
+            <div className="space-y-5 group">
+              <div className="aspect-[1.3] rounded-3xl overflow-hidden bg-slate-50 border border-slate-100 shadow-sm">
+                <img
+                  src="/images/why-community.png"
+                  alt="Active Trading Community Café Workspace"
+                  className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-300"
+                />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-lg font-bold text-[#0f172a]">Active Community</h3>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  Join a thriving community of like-minded traders. Share ideas, discuss strategies, and grow together...
+                </p>
+                <a
+                  href="#"
+                  className="inline-flex items-center gap-1.5 text-[9px] font-bold text-[#3b82f6] hover:text-blue-700 uppercase tracking-wider"
+                >
+                  Read More <span className="text-xs font-medium">˅</span>
+                </a>
+              </div>
             </div>
           </div>
         </div>
       </section>
-    </>
+    </div>
   );
 }
