@@ -15,7 +15,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const course = await queryOne(
     "SELECT title, short_description, seo_title, seo_description FROM courses WHERE slug = ? AND status = 'PUBLISHED'",
     [slug]
-  );
+  ).catch(() => null);
   if (!course) return { title: "Course Not Found" };
   return {
     title: course.seo_title || course.title,
@@ -48,12 +48,12 @@ export default async function CourseDetailPage({ params }: Props) {
      LEFT JOIN categories cat ON c.category_id = cat.id
      WHERE c.slug = ? AND c.status = 'PUBLISHED'`,
     [slug]
-  );
+  ).catch(() => null);
 
   if (!course) notFound();
 
   // 2. Fetch modules
-  const rawModules = await query("SELECT * FROM modules WHERE course_id = ? ORDER BY sort_order ASC", [course.id]);
+  const rawModules = await query("SELECT * FROM modules WHERE course_id = ? ORDER BY sort_order ASC", [course.id]).catch(() => []);
   
   // 3. Fetch lessons for each module
   const modules: DBModule[] = [];
@@ -61,7 +61,7 @@ export default async function CourseDetailPage({ params }: Props) {
     const lessons = await query(
       "SELECT id, title, duration_seconds, is_preview FROM lessons WHERE module_id = ? ORDER BY sort_order ASC",
       [m.id]
-    );
+    ).catch(() => []);
     modules.push({
       id: m.id,
       title: m.title,
@@ -82,7 +82,7 @@ export default async function CourseDetailPage({ params }: Props) {
     const enrollment = await queryOne(
       "SELECT id FROM enrollments WHERE user_id = ? AND course_id = ? AND status = 'ACTIVE'",
       [session.user.id, course.id]
-    );
+    ).catch(() => null);
     isEnrolled = !!enrollment;
   }
 

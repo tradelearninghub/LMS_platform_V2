@@ -20,7 +20,7 @@ export default async function CoursesIndexPage({ searchParams }: CoursesIndexPag
   const searchInput = params.q;
 
   // 1. Fetch categories
-  const categories = await query("SELECT * FROM categories ORDER BY sort_order ASC");
+  const categories = await query("SELECT * FROM categories ORDER BY sort_order ASC").catch(() => []);
 
   // 2. Fetch courses with categories and enrollment counts
   let queryStr = `
@@ -43,7 +43,7 @@ export default async function CoursesIndexPage({ searchParams }: CoursesIndexPag
   }
 
   queryStr += ` ORDER BY c.is_featured DESC, c.sort_order ASC, c.created_at DESC`;
-  const courses = await query(queryStr, dbParams);
+  const courses = await query(queryStr, dbParams).catch(() => []);
 
   return (
     <div className="container py-12">

@@ -17,7 +17,7 @@ export async function generateMetadata({ params }: Props) {
   const course = await queryOne(
     "SELECT title FROM courses WHERE slug = ? AND status = 'PUBLISHED'",
     [slug]
-  );
+  ).catch(() => null);
   return { title: course ? `Buy ${course.title}` : "Course Not Found" };
 }
 
@@ -29,21 +29,21 @@ export default async function BuyCoursePage({ params }: Props) {
   const course = await queryOne(
     "SELECT id, title, slug, price_cents, currency FROM courses WHERE slug = ? AND status = 'PUBLISHED'",
     [slug]
-  );
+  ).catch(() => null);
   if (!course) notFound();
 
   // Already enrolled?
   const enrollment = await queryOne(
     "SELECT id FROM enrollments WHERE user_id = ? AND course_id = ? AND status = 'ACTIVE'",
     [session.user.id, course.id]
-  );
+  ).catch(() => null);
   if (enrollment) redirect(`/learn/${slug}`);
 
   // Pending order?
   const pendingOrder = await queryOne(
     "SELECT * FROM orders WHERE user_id = ? AND course_id = ? AND status = 'PENDING' LIMIT 1",
     [session.user.id, course.id]
-  );
+  ).catch(() => null);
 
   const paymentSettings = await getPaymentSettings();
 
