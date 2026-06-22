@@ -88,6 +88,13 @@ export async function deleteCourseAction(courseId: string) {
   return { success: true };
 }
 
+export async function updateCourseSortOrderAction(courseId: string, sortOrder: number) {
+  await requireAdmin();
+  await execute("UPDATE courses SET sort_order = ? WHERE id = ?", [sortOrder, courseId]);
+  revalidatePath("/admin/courses");
+  return { success: true };
+}
+
 // ── Module CRUD ─────────────────────────────────────────────────────────────
 
 export async function createModuleAction(_prev: unknown, formData: FormData) {
@@ -222,6 +229,7 @@ export async function approveOrderAction(orderId: string) {
   }
 
   revalidatePath("/admin/orders");
+  revalidatePath(`/admin/orders/${orderId}`);
   return { success: true };
 }
 
@@ -246,6 +254,7 @@ export async function rejectOrderAction(orderId: string, reason?: string) {
   }
 
   revalidatePath("/admin/orders");
+  revalidatePath(`/admin/orders/${orderId}`);
   return { success: true };
 }
 

@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import path from "path";
 import fs from "fs/promises";
+import crypto from "crypto";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
-  if (!session?.user || session.user.role !== "ADMIN") {
+  if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -32,7 +33,8 @@ export async function POST(req: NextRequest) {
 
     // Generate unique filename
     const ext = path.extname(file.name) || ".png";
-    const filename = `qr-${Date.now()}${ext}`;
+    const randomHex = crypto.randomBytes(4).toString("hex");
+    const filename = `upload-${Date.now()}-${randomHex}${ext}`;
 
     // Save to public/uploads directory
     const uploadsDir = path.join(process.cwd(), "public", "uploads");

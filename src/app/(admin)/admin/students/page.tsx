@@ -1,5 +1,6 @@
 import { query } from "@/lib/db";
 import { formatDate } from "@/lib/utils";
+import { StudentStatusToggle } from "./student-status-toggle";
 
 export const metadata = { title: "Students" };
 
@@ -41,11 +42,7 @@ export default async function AdminStudentsPage() {
                 <td className="px-4 py-3">{s.email}</td>
                 <td className="px-4 py-3 text-muted-foreground">{s.mobile || "—"}</td>
                 <td className="px-4 py-3">
-                  <span className={`inline-block rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
-                    s.status === "ACTIVE" ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                  }`}>
-                    {s.status}
-                  </span>
+                  <StudentStatusToggle userId={s.id} status={s.status} />
                 </td>
                 <td className="px-4 py-3 text-center">{s.enrollment_count}</td>
                 <td className="px-4 py-3 text-center">{s.order_count}</td>

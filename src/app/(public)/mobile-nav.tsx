@@ -40,6 +40,13 @@ export function MobileNav({
             >
               Courses
             </Link>
+            <Link
+              href="/research"
+              onClick={() => setOpen(false)}
+              className="rounded-md px-3 py-2 hover:bg-accent transition-colors"
+            >
+              Research
+            </Link>
             {isLoggedIn ? (
               <>
                 <Link

@@ -72,11 +72,25 @@ export async function initializeDatabase() {
         category_id VARCHAR(255) NULL,
         seo_title VARCHAR(255) NULL,
         seo_description TEXT NULL,
+        sort_order INT NOT NULL DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE SET NULL
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
+
+    // Ensure sort_order column exists in courses (migration for existing databases)
+    try {
+      await connection.query("ALTER TABLE courses ADD COLUMN sort_order INT NOT NULL DEFAULT 0;");
+      console.log("[DB Init] Added sort_order column to courses table.");
+    } catch (err: any) {
+      if (err.code === "ER_DUP_FIELDNAME") {
+        // Safe to ignore since it already exists
+        console.log("[DB Init] sort_order column already exists in courses table.");
+      } else {
+        console.error("[DB Init] Failed to verify/add sort_order to courses:", err);
+      }
+    }
 
     await connection.query(`
       CREATE TABLE IF NOT EXISTS modules (

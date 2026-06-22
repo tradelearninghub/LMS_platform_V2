@@ -1,6 +1,6 @@
 import { query } from "@/lib/db";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { OrderActions } from "./order-actions";
+import Link from "next/link";
 
 export const metadata = { title: "Manage Orders" };
 
@@ -67,9 +67,9 @@ export default async function AdminOrdersPage() {
                   {formatDate(order.created_at)}
                 </td>
                 <td className="px-4 py-3">
-                  {order.status === "PENDING" && (
-                    <OrderActions orderId={order.id} />
-                  )}
+                  <Link href={`/admin/orders/${order.id}`} className="text-primary hover:underline text-xs font-medium">
+                    View Order
+                  </Link>
                 </td>
               </tr>
             ))}

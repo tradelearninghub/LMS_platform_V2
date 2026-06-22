@@ -2,6 +2,7 @@ import Link from "next/link";
 import { query } from "@/lib/db";
 import { formatCurrency } from "@/lib/utils";
 import { AdminCourseActions } from "./course-actions";
+import { CourseSortInput } from "./course-sort-input";
 
 export const metadata = { title: "Manage Courses" };
 
@@ -13,7 +14,7 @@ export default async function AdminCoursesPage() {
             (SELECT COUNT(*) FROM enrollments e WHERE e.course_id = c.id) AS enrollment_count
      FROM courses c
      LEFT JOIN categories cat ON c.category_id = cat.id
-     ORDER BY c.created_at DESC`
+     ORDER BY c.sort_order ASC, c.created_at DESC`
   );
 
   // 2. Fetch categories
@@ -53,6 +54,7 @@ export default async function AdminCoursesPage() {
               <th className="px-4 py-3 text-left font-medium">Category</th>
               <th className="px-4 py-3 text-left font-medium">Price</th>
               <th className="px-4 py-3 text-left font-medium">Status</th>
+              <th className="px-4 py-3 text-left font-medium">Sort Order</th>
               <th className="px-4 py-3 text-left font-medium">Modules</th>
               <th className="px-4 py-3 text-left font-medium">Students</th>
               <th className="px-4 py-3 text-left font-medium">Actions</th>
@@ -90,6 +92,9 @@ export default async function AdminCoursesPage() {
                   >
                     {course.status}
                   </span>
+                </td>
+                <td className="px-4 py-3">
+                  <CourseSortInput courseId={course.id} initialSortOrder={course.sort_order || 0} />
                 </td>
                 <td className="px-4 py-3 text-muted-foreground">{course.module_count}</td>
                 <td className="px-4 py-3 text-muted-foreground">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { createOrderAction, type OrderState } from "./actions";
 
 const initialState: OrderState = {};
@@ -15,6 +15,25 @@ export function BuyForm({
   currency: string;
 }) {
   const [state, formAction, isPending] = useActionState(createOrderAction, initialState);
+  const [uploading, setUploading] = useState(false);
+  const [screenshotUrl, setScreenshotUrl] = useState("");
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files?.[0]) return;
+    setUploading(true);
+    const fileData = new FormData();
+    fileData.append("file", e.target.files[0]);
+    try {
+      const res = await fetch("/api/upload", { method: "POST", body: fileData });
+      const data = await res.json();
+      if (data.url) setScreenshotUrl(data.url);
+      else if (data.error) alert(data.error);
+    } catch (err) {
+      alert("Upload failed.");
+    } finally {
+      setUploading(false);
+    }
+  };
 
   if (state.success) {
     return (
@@ -76,16 +95,17 @@ export function BuyForm({
       </label>
 
       <label className="block">
-        <span className="text-sm font-medium">
-          Payment screenshot URL{" "}
-          <span className="text-muted-foreground font-normal">(Google Drive / Imgur link)</span>
-        </span>
+        <span className="text-sm font-medium">Payment screenshot <span className="text-muted-foreground font-normal">(Required)</span></span>
         <input
-          name="paymentScreenshotUrl"
-          type="url"
-          className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-          placeholder="https://..."
+          type="file"
+          accept="image/*"
+          onChange={handleUpload}
+          disabled={uploading}
+          className="mt-1 w-full text-sm file:mr-4 file:rounded-md file:border-0 file:bg-primary/10 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-primary hover:file:bg-primary/20 focus:outline-none"
         />
+        {uploading && <p className="text-xs text-muted-foreground mt-1">Uploading...</p>}
+        {screenshotUrl && <p className="text-xs text-green-600 mt-1">Screenshot uploaded successfully!</p>}
+        <input type="hidden" name="paymentScreenshotUrl" value={screenshotUrl} required />
       </label>
 
       <label className="block">
@@ -99,10 +119,10 @@ export function BuyForm({
 
       <button
         type="submit"
-        disabled={isPending}
+        disabled={isPending || uploading || !screenshotUrl}
         className="w-full rounded-md bg-primary px-4 py-3 text-primary-foreground font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
       >
-        {isPending ? "Submitting…" : "Submit Order"}
+        {isPending ? "Submitting…" : uploading ? "Uploading image…" : !screenshotUrl ? "Upload screenshot to submit" : "Submit Order"}
       </button>
     </form>
   );

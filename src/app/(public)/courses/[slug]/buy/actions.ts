@@ -27,8 +27,8 @@ export async function createOrderAction(
   const paymentScreenshotUrl = (formData.get("paymentScreenshotUrl") as string) || null;
   const studentNotes = (formData.get("studentNotes") as string) || null;
 
-  if (!courseId || !payerName || !payerMobile || !transactionId) {
-    return { error: "Please fill in all required fields." };
+  if (!courseId || !payerName || !payerMobile || !transactionId || !paymentScreenshotUrl) {
+    return { error: "Please fill in all required fields, including the payment screenshot." };
   }
 
   // Verify course exists

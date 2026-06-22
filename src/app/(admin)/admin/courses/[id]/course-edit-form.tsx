@@ -8,6 +8,7 @@ import {
   deleteModuleAction,
   deleteLessonAction,
   deleteCourseAction,
+  createCategoryAction,
 } from "../../../actions";
 import { useRouter } from "next/navigation";
 
@@ -107,21 +108,57 @@ export function CourseEditForm({
               <option value="ARCHIVED">Archived</option>
             </select>
           </label>
-          <label className="block">
+          <div className="block">
             <span className="text-sm font-medium">Category</span>
-            <select name="categoryId" defaultValue={course.categoryId || ""} className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
-              <option value="">None</option>
-              {categories.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
-            </select>
-          </label>
+            <div className="flex gap-2 mt-1">
+              <select name="categoryId" defaultValue={course.categoryId || ""} className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm">
+                <option value="">None</option>
+                {categories.map((c) => (<option key={c.id} value={c.id}>{c.name}</option>))}
+              </select>
+              <button type="button" onClick={async () => {
+                const name = prompt("New category name:");
+                if (name) {
+                  const fd = new FormData();
+                  fd.append("name", name);
+                  startTransition(async () => {
+                    const res = await createCategoryAction(null, fd);
+                    if (res?.error) {
+                      alert(res.error);
+                    } else {
+                      router.refresh();
+                    }
+                  });
+                }
+              }} className="rounded-md border bg-secondary px-3 py-2 text-sm" title="Create Category">+</button>
+            </div>
+          </div>
           <label className="block">
             <span className="text-sm font-medium">Price (paise/cents)</span>
             <input name="priceCents" type="number" defaultValue={course.priceCents} className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
           </label>
-          <label className="block">
+          <div className="block">
             <span className="text-sm font-medium">Thumbnail URL</span>
-            <input name="thumbnailUrl" defaultValue={course.thumbnailUrl || ""} className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
-          </label>
+            <div className="flex items-center gap-2 mt-1">
+              <input name="thumbnailUrl" defaultValue={course.thumbnailUrl || ""} id="thumbnailUrlInput" className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm" />
+              <input type="file" accept="image/*" id="thumbnailUpload" className="hidden" onChange={async (e) => {
+                if (!e.target.files?.[0]) return;
+                const fd = new FormData();
+                fd.append("file", e.target.files[0]);
+                try {
+                  const res = await fetch("/api/upload", { method: "POST", body: fd });
+                  const data = await res.json();
+                  if (data.url) {
+                    (document.getElementById("thumbnailUrlInput") as HTMLInputElement).value = data.url;
+                  } else {
+                    alert(data.error || "Upload failed");
+                  }
+                } catch {
+                  alert("Upload failed");
+                }
+              }} />
+              <button type="button" onClick={() => document.getElementById('thumbnailUpload')?.click()} className="rounded-md border bg-secondary px-3 py-2 text-sm hover:bg-secondary/80">Upload</button>
+            </div>
+          </div>
           <label className="flex items-center gap-2 self-end pb-2">
             <input name="isFeatured" type="checkbox" defaultChecked={course.isFeatured} className="rounded" />
             <span className="text-sm font-medium">Featured</span>

@@ -19,6 +19,36 @@ function Field({ name, label, value, type = "text" }: { name: string; label: str
   );
 }
 
+function ImageUploadField({ name, label, value, uploadUrl = "/api/upload", accept = "image/*" }: { name: string; label: string; value?: string | null; uploadUrl?: string; accept?: string }) {
+  return (
+    <div className="block">
+      <span className="text-sm font-medium">{label}</span>
+      <div className="flex items-center gap-2 mt-1">
+        <input name={name} defaultValue={value || ""} id={`input-${name}`} className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm" />
+        <input type="file" accept={accept} id={`upload-${name}`} className="hidden" onChange={async (e) => {
+          if (!e.target.files?.[0]) return;
+          const fd = new FormData();
+          fd.append("file", e.target.files[0]);
+          try {
+            const res = await fetch(uploadUrl, { method: "POST", body: fd });
+            const data = await res.json();
+            if (data.url) {
+              const input = document.getElementById(`input-${name}`) as HTMLInputElement;
+              if (input) input.value = data.url;
+              if (uploadUrl.includes("favicon")) alert("Favicon updated successfully!");
+            } else {
+              alert(data.error || "Upload failed");
+            }
+          } catch {
+            alert("Upload failed");
+          }
+        }} />
+        <button type="button" onClick={() => document.getElementById(`upload-${name}`)?.click()} className="rounded-md border bg-secondary px-3 py-2 text-sm hover:bg-secondary/80">Upload</button>
+      </div>
+    </div>
+  );
+}
+
 export function SiteSettingsForm({ settings }: { settings: Settings }) {
   const [state, formAction, isPending] = useActionState(updateSiteSettingsAction, {} as any);
 
@@ -35,8 +65,8 @@ export function SiteSettingsForm({ settings }: { settings: Settings }) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Field name="siteName" label="Site name" value={settings.siteName} />
           <Field name="tagline" label="Tagline" value={settings.tagline} />
-          <Field name="logoUrl" label="Logo URL" value={settings.logoUrl} />
-          <Field name="faviconUrl" label="Favicon URL" value={settings.faviconUrl} />
+          <ImageUploadField name="logoUrl" label="Logo URL" value={settings.logoUrl} />
+          <ImageUploadField name="faviconUrl" label="Favicon (Auto-saves on upload)" value="" uploadUrl="/api/upload-favicon" accept="image/x-icon, image/png" />
           <Field name="primaryColor" label="Primary color" value={settings.primaryColor} type="color" />
           <Field name="accentColor" label="Accent color" value={settings.accentColor} type="color" />
         </div>

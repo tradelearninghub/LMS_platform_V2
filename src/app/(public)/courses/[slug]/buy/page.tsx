@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { formatCurrency } from "@/lib/utils";
 import { getPaymentSettings } from "@/lib/settings";
 import { BuyForm } from "./buy-form";
+import { CopyButton } from "./copy-button";
 import Image from "next/image";
 import crypto from "crypto";
 
@@ -108,9 +109,12 @@ export default async function BuyCoursePage({ params }: Props) {
         {paymentSettings.upi_id && (
           <div className="flex items-center justify-between text-sm border-t pt-3">
             <span className="text-muted-foreground">UPI ID</span>
-            <span className="font-mono font-medium bg-muted px-2 py-0.5 rounded select-all">
-              {paymentSettings.upi_id}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="font-mono font-medium bg-muted px-2 py-0.5 rounded select-all">
+                {paymentSettings.upi_id}
+              </span>
+              <CopyButton text={paymentSettings.upi_id} />
+            </div>
           </div>
         )}
 
