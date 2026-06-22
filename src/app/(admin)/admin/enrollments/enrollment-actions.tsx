@@ -55,7 +55,7 @@ export function EnrollmentActions({
   );
 }
 
-function RevokeButton({ enrollmentId }: { enrollmentId: string }) {
+export function RevokeButton({ enrollmentId }: { enrollmentId: string }) {
   const [isPending, startTransition] = useTransition();
   return (
     <button
@@ -71,5 +71,3 @@ function RevokeButton({ enrollmentId }: { enrollmentId: string }) {
     </button>
   );
 }
-
-EnrollmentActions.RevokeButton = RevokeButton;

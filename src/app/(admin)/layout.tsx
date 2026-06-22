@@ -9,6 +9,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <aside className="hidden md:flex w-64 flex-col border-r bg-card">
         <div className="px-6 h-16 flex items-center font-semibold border-b">Admin</div>
         <nav className="p-4 space-y-1 text-sm">
+          <Link href="/" className="block rounded-md px-3 py-2 text-primary font-semibold hover:bg-accent/80 border border-primary/20 bg-primary/5 mb-3 text-center transition-colors">
+            &larr; Exit to Website
+          </Link>
           <Link href="/admin" className="block rounded-md px-3 py-2 hover:bg-accent">Overview</Link>
           <Link href="/admin/courses" className="block rounded-md px-3 py-2 hover:bg-accent">Courses</Link>
           <Link href="/admin/orders" className="block rounded-md px-3 py-2 hover:bg-accent">Orders</Link>
@@ -30,8 +33,11 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         </form>
       </aside>
       <div className="flex-1">
-        <header className="h-16 border-b bg-white/80 backdrop-blur flex items-center px-6">
+        <header className="h-16 border-b bg-white/80 backdrop-blur flex items-center justify-between px-6">
           <span className="text-sm text-muted-foreground">Admin console</span>
+          <Link href="/" className="text-xs font-semibold border rounded-full px-4 py-1.5 bg-background hover:bg-accent transition-colors flex items-center gap-1">
+            &larr; Exit to Website
+          </Link>
         </header>
         <div className="p-6">{children}</div>
       </div>

@@ -6,6 +6,7 @@ import { slugify } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
 import { sendEventEmail } from "@/lib/email";
 import crypto from "crypto";
+import nodemailer from "nodemailer";
 
 // ── Course CRUD ─────────────────────────────────────────────────────────────
 
@@ -369,6 +370,58 @@ export async function updateEmailSettingsAction(_prev: unknown, formData: FormDa
 
   revalidatePath("/admin/settings/email");
   return { success: true };
+}
+
+export async function testEmailSettingsAction(_prev: unknown, formData: FormData) {
+  await requireAdmin();
+  
+  const smtpHost = (formData.get("smtpHost") as string) || null;
+  const smtpPort = parseInt(formData.get("smtpPort") as string, 10) || null;
+  const smtpUsername = (formData.get("smtpUsername") as string) || null;
+  const smtpPassword = (formData.get("smtpPassword") as string) || null;
+  const smtpSecure = formData.get("smtpSecure") === "on";
+  const senderEmail = (formData.get("senderEmail") as string) || null;
+  const senderName = (formData.get("senderName") as string) || null;
+  const toEmail = (formData.get("toEmail") as string) || null;
+
+  if (!smtpHost || !smtpPort || !senderEmail || !toEmail) {
+    return { error: "Host, Port, Sender Email, and Test Recipient Email are required to run a test." };
+  }
+
+  try {
+    const transporter = nodemailer.createTransport({
+      host: smtpHost,
+      port: smtpPort,
+      secure: smtpSecure,
+      auth: smtpUsername
+        ? { user: smtpUsername, pass: smtpPassword ?? undefined }
+        : undefined,
+    });
+
+    const from = senderName ? `"${senderName}" <${senderEmail}>` : senderEmail;
+    
+    await transporter.sendMail({
+      from,
+      to: toEmail,
+      subject: "Test Email from LMS Admin",
+      text: "Hello! This is a test email to verify your SMTP settings in the LMS platform.",
+      html: `
+        <div style="font-family: sans-serif; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #2563eb;">SMTP Connection Test</h2>
+          <p>Hello,</p>
+          <p>This is a test email sent from your LMS platform admin dashboard.</p>
+          <p><strong>Status:</strong> Success! NodeMailer successfully connected to your SMTP server and dispatched this email.</p>
+          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+          <p style="font-size: 12px; color: #666;">Sent on: ${new Date().toLocaleString()}</p>
+        </div>
+      `
+    });
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("Test email failed:", error);
+    return { error: error.message || "Failed to send test email. Check your SMTP settings and credentials." };
+  }
 }
 
 // ── Category CRUD ───────────────────────────────────────────────────────────
