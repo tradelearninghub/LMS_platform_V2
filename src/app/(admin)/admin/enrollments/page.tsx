@@ -1,6 +1,6 @@
 import { query } from "@/lib/db";
 import { formatDate } from "@/lib/utils";
-import { EnrollmentActions, RevokeButton } from "./enrollment-actions";
+import { EnrollmentActions, RevokeButton, ReactivateButton } from "./enrollment-actions";
 
 export const metadata = { title: "Enrollments" };
 
@@ -70,8 +70,10 @@ export default async function AdminEnrollmentsPage() {
                 </td>
                 <td className="px-4 py-3 text-muted-foreground text-xs">{formatDate(e.enrolled_at)}</td>
                 <td className="px-4 py-3">
-                  {e.status === "ACTIVE" && (
+                  {e.status === "ACTIVE" ? (
                     <RevokeButton enrollmentId={e.id} />
+                  ) : (
+                    <ReactivateButton enrollmentId={e.id} />
                   )}
                 </td>
               </tr>

@@ -133,8 +133,8 @@ export function CourseEditForm({
             </div>
           </div>
           <label className="block">
-            <span className="text-sm font-medium">Price (paise/cents)</span>
-            <input name="priceCents" type="number" defaultValue={course.priceCents} className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+            <span className="text-sm font-medium">Price (INR / Rupees)</span>
+            <input name="priceCents" type="number" step="0.01" defaultValue={course.priceCents / 100} className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
           </label>
           <div className="block">
             <span className="text-sm font-medium">Thumbnail URL</span>

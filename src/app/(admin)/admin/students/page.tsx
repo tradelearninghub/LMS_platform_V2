@@ -1,6 +1,7 @@
 import { query } from "@/lib/db";
 import { formatDate } from "@/lib/utils";
 import { StudentStatusToggle } from "./student-status-toggle";
+import Link from "next/link";
 
 export const metadata = { title: "Students" };
 
@@ -33,12 +34,17 @@ export default async function AdminStudentsPage() {
               <th className="px-4 py-3 text-left font-medium">Enrollments</th>
               <th className="px-4 py-3 text-left font-medium">Orders</th>
               <th className="px-4 py-3 text-left font-medium">Joined</th>
+              <th className="px-4 py-3 text-right font-medium">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y">
             {students.map((s) => (
               <tr key={s.id} className="hover:bg-muted/30">
-                <td className="px-4 py-3 font-medium">{s.name || "—"}</td>
+                <td className="px-4 py-3 font-medium">
+                  <Link href={`/admin/students/${s.id}`} className="text-primary hover:underline">
+                    {s.name || "—"}
+                  </Link>
+                </td>
                 <td className="px-4 py-3">{s.email}</td>
                 <td className="px-4 py-3 text-muted-foreground">{s.mobile || "—"}</td>
                 <td className="px-4 py-3">
@@ -47,6 +53,11 @@ export default async function AdminStudentsPage() {
                 <td className="px-4 py-3 text-center">{s.enrollment_count}</td>
                 <td className="px-4 py-3 text-center">{s.order_count}</td>
                 <td className="px-4 py-3 text-muted-foreground text-xs">{formatDate(s.created_at)}</td>
+                <td className="px-4 py-3 text-right">
+                  <Link href={`/admin/students/${s.id}`} className="text-xs text-primary hover:underline font-medium">
+                    View Profile
+                  </Link>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -58,3 +69,4 @@ export default async function AdminStudentsPage() {
     </div>
   );
 }
+

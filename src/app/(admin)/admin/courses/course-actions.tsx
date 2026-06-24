@@ -45,10 +45,11 @@ export function AdminCourseActions({ categories }: { categories: Category[] }) {
         </label>
 
         <label className="block">
-          <span className="text-sm font-medium">Price (in paise/cents)</span>
+          <span className="text-sm font-medium">Price (INR / Rupees)</span>
           <input
             name="priceCents"
             type="number"
+            step="0.01"
             defaultValue="0"
             className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
           />

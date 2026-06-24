@@ -78,17 +78,17 @@ export default async function PublicLayout({ children }: { children: React.React
               <h4 className="text-xs font-bold text-slate-900 uppercase tracking-widest">Platform</h4>
               <ul className="space-y-2 text-sm text-slate-500">
                 <li><Link href="/courses" className="hover:text-slate-900 transition-colors">Courses</Link></li>
-                <li><Link href="/research" className="hover:text-slate-900 transition-colors">Research</Link></li>
-                <li><Link href="#" className="hover:text-slate-900 transition-colors">Get in Touch</Link></li>
+                 <li><Link href="/research" className="hover:text-slate-900 transition-colors">Research</Link></li>
+                <li><Link href="/contact" className="hover:text-slate-900 transition-colors">Get in Touch</Link></li>
                 <li><Link href={isLoggedIn ? (isAdmin ? "/admin" : "/dashboard") : "/login"} className="hover:text-slate-900 transition-colors">Sign In</Link></li>
               </ul>
             </div>
             <div className="md:col-span-3 space-y-4">
               <h4 className="text-xs font-bold text-slate-900 uppercase tracking-widest">Legal</h4>
               <ul className="space-y-2 text-sm text-slate-500">
-                <li><Link href={site.termsUrl || "#"} className="hover:text-slate-900 transition-colors">Terms of Service</Link></li>
-                <li><Link href={site.privacyUrl || "#"} className="hover:text-slate-900 transition-colors">Privacy Policy</Link></li>
-                <li><Link href={site.refundUrl || "#"} className="hover:text-slate-900 transition-colors">Refund Policy</Link></li>
+                <li><Link href="/terms" className="hover:text-slate-900 transition-colors">Terms of Service</Link></li>
+                <li><Link href="/privacy" className="hover:text-slate-900 transition-colors">Privacy Policy</Link></li>
+                <li><Link href="/refund" className="hover:text-slate-900 transition-colors">Refund Policy</Link></li>
               </ul>
             </div>
           </div>

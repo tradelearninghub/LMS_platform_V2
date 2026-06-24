@@ -480,13 +480,13 @@ export async function initializeDatabase() {
 
     const templates = [
       { id: "tpl-1", event: "WELCOME", name: "Welcome", subject: "Welcome to {{siteName}}", title: "Welcome aboard", body: "Thanks for joining {{siteName}}. Start by exploring the catalogue." },
-      { id: "tpl-2", event: "REGISTRATION", name: "Registration", subject: "Confirm your email", title: "Almost there", body: "Click the link to confirm your email." },
+      { id: "tpl-2", event: "REGISTRATION", name: "Registration", subject: "Confirm your email", title: "Almost there", body: "Click the link to confirm your email: {{link}}" },
       { id: "tpl-3", event: "PAYMENT_RECEIVED", name: "Payment Received", subject: "Payment received — pending review", title: "We got your payment", body: "Your payment for {{courseTitle}} is under review." },
       { id: "tpl-4", event: "PAYMENT_APPROVED", name: "Payment Approved", subject: "Access granted: {{courseTitle}}", title: "You're in", body: "Your access to {{courseTitle}} is now active." },
       { id: "tpl-5", event: "PAYMENT_REJECTED", name: "Payment Rejected", subject: "Payment could not be verified", title: "We couldn't verify your payment", body: "Reason: {{reason}}" },
       { id: "tpl-6", event: "COURSE_ENROLLMENT", name: "Course Enrollment", subject: "Enrolled in {{courseTitle}}", title: "Enrollment confirmed", body: "You have been enrolled in {{courseTitle}}." },
-      { id: "tpl-7", event: "PASSWORD_RESET", name: "Password Reset", subject: "Reset your password", title: "Password reset", body: "Click the link to reset your password." },
-      { id: "tpl-8", event: "ACCOUNT_VERIFICATION", name: "Account Verification", subject: "Verify your account", title: "Verify your account", body: "Tap the link to verify." },
+      { id: "tpl-7", event: "PASSWORD_RESET", name: "Password Reset", subject: "Reset your password", title: "Password reset", body: "Click the link to reset your password: {{link}}" },
+      { id: "tpl-8", event: "ACCOUNT_VERIFICATION", name: "Account Verification", subject: "Verify your account", title: "Verify your account", body: "Tap the link to verify: {{link}}" },
       { id: "tpl-9", event: "ADMIN_NOTIFICATION", name: "Admin Notification", subject: "New activity on {{siteName}}", title: "Heads up", body: "{{message}}" },
       { id: "tpl-10", event: "CUSTOM_BROADCAST", name: "Custom Broadcast", subject: "{{subject}}", title: "{{title}}", body: "{{body}}" },
     ];
@@ -501,6 +501,35 @@ export async function initializeDatabase() {
       }
     }
     console.log("Seeded default email templates.");
+
+    // Auto-upgrade templates that are missing {{link}}
+    const [existingTemplates] = await connection.query("SELECT id, event, blocks_json FROM email_templates");
+    for (const row of existingTemplates as any[]) {
+      if (["REGISTRATION", "PASSWORD_RESET", "ACCOUNT_VERIFICATION"].includes(row.event)) {
+        if (!row.blocks_json.includes("{{link}}")) {
+          console.log(`[DB Init] Upgrading template ${row.event} to include {{link}} placeholder.`);
+          let newBody = "";
+          let newTitle = "";
+          if (row.event === "REGISTRATION") {
+            newTitle = "Almost there";
+            newBody = "Click the link to confirm your email: {{link}}";
+          } else if (row.event === "PASSWORD_RESET") {
+            newTitle = "Password reset";
+            newBody = "Click the link to reset your password: {{link}}";
+          } else if (row.event === "ACCOUNT_VERIFICATION") {
+            newTitle = "Verify your account";
+            newBody = "Tap the link to verify: {{link}}";
+          }
+          if (newBody) {
+            await connection.query(
+              "UPDATE email_templates SET blocks_json = ? WHERE id = ?",
+              [defaultBlocks(newTitle, newBody), row.id]
+            );
+          }
+        }
+      }
+    }
+
 
     // 6. Seeding Homepage sections
     const sections = [

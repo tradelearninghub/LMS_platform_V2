@@ -31,11 +31,13 @@ export async function sendEmail({ to, subject, html, templateId }: SendArgs) {
   const transporter = await getMailer();
 
   const id = Math.random().toString(36).substring(2, 11);
+  const prefix = "[Trade Learning Hub] ";
+  const finalSubject = subject.startsWith("[Trade Learning Hub]") ? subject : `${prefix}${subject}`;
 
   if (!transporter || !cfg) {
     await execute(
       "INSERT INTO email_logs (id, to_email, subject, status, error_msg) VALUES (?, ?, ?, ?, ?)",
-      [id, to, subject, "failed", "Email not configured"]
+      [id, to, finalSubject, "failed", "Email not configured"]
     );
     return { ok: false, error: "Email not configured" };
   }
@@ -45,16 +47,16 @@ export async function sendEmail({ to, subject, html, templateId }: SendArgs) {
     : (cfg.sender_email ?? "no-reply@example.com");
 
   try {
-    await transporter.sendMail({ from, to, subject, html, replyTo: cfg.reply_to ?? undefined });
+    await transporter.sendMail({ from, to, subject: finalSubject, html, replyTo: cfg.reply_to ?? undefined });
     await execute(
       "INSERT INTO email_logs (id, to_email, subject, status, sent_at) VALUES (?, ?, ?, ?, ?)",
-      [id, to, subject, "sent", new Date()]
+      [id, to, finalSubject, "sent", new Date()]
     );
     return { ok: true };
   } catch (err) {
     await execute(
       "INSERT INTO email_logs (id, to_email, subject, status, error_msg) VALUES (?, ?, ?, ?, ?)",
-      [id, to, subject, "failed", err instanceof Error ? err.message : String(err)]
+      [id, to, finalSubject, "failed", err instanceof Error ? err.message : String(err)]
     );
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }

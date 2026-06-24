@@ -59,6 +59,7 @@ export type FormState = {
   error?: string;
   success?: string;
   fieldErrors?: Record<string, string[] | undefined>;
+  pendingVerification?: boolean;
 };
 
 export type LoginState = FormState;
@@ -85,7 +86,7 @@ export async function loginAction(
     return { error: "Invalid email or password." };
   }
   if (user.status === "PENDING_VERIFICATION") {
-    return { error: "Please verify your email address before signing in." };
+    return { error: "Please verify your email address before signing in.", pendingVerification: true };
   }
   if (user.status !== "ACTIVE") {
     return { error: "Your account is suspended. Please contact support." };

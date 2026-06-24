@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useTransition } from "react";
-import { manualEnrollAction, revokeEnrollmentAction } from "../../actions";
+import { manualEnrollAction, revokeEnrollmentAction, reactivateEnrollmentAction } from "../../actions";
 
 type User = { id: string; name: string | null; email: string };
 type Course = { id: string; title: string };
@@ -68,6 +68,23 @@ export function RevokeButton({ enrollmentId }: { enrollmentId: string }) {
       className="text-xs text-destructive hover:underline disabled:opacity-50"
     >
       Revoke
+    </button>
+  );
+}
+
+export function ReactivateButton({ enrollmentId }: { enrollmentId: string }) {
+  const [isPending, startTransition] = useTransition();
+  return (
+    <button
+      disabled={isPending}
+      onClick={() => {
+        if (confirm("Reactivate this enrollment?")) {
+          startTransition(() => { reactivateEnrollmentAction(enrollmentId); });
+        }
+      }}
+      className="text-xs text-green-600 hover:underline disabled:opacity-50 font-medium"
+    >
+      Reactivate
     </button>
   );
 }

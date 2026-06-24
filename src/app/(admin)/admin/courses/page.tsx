@@ -3,6 +3,7 @@ import { query } from "@/lib/db";
 import { formatCurrency } from "@/lib/utils";
 import { AdminCourseActions } from "./course-actions";
 import { CourseSortInput } from "./course-sort-input";
+import { CourseStatusToggle } from "./course-status-toggle";
 
 export const metadata = { title: "Manage Courses" };
 
@@ -85,13 +86,7 @@ export default async function AdminCoursesPage() {
                     : formatCurrency(course.price_cents, course.currency)}
                 </td>
                 <td className="px-4 py-3">
-                  <span
-                    className={`inline-block rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${
-                      statusColors[course.status] || ""
-                    }`}
-                  >
-                    {course.status}
-                  </span>
+                  <CourseStatusToggle courseId={course.id} status={course.status} />
                 </td>
                 <td className="px-4 py-3">
                   <CourseSortInput courseId={course.id} initialSortOrder={course.sort_order || 0} />

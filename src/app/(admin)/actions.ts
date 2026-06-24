@@ -16,7 +16,7 @@ export async function createCourseAction(_prev: unknown, formData: FormData) {
   const slug = slugify(title);
   const shortDescription = (formData.get("shortDescription") as string) || null;
   const description = (formData.get("description") as string) || null;
-  const priceCents = parseInt(formData.get("priceCents") as string, 10) || 0;
+  const priceCents = Math.round(parseFloat(formData.get("priceCents") as string || "0") * 100) || 0;
   const categoryId = (formData.get("categoryId") as string) || null;
   const isFeatured = formData.get("isFeatured") === "on";
 
@@ -44,7 +44,7 @@ export async function updateCourseAction(_prev: unknown, formData: FormData) {
   const title = formData.get("title") as string;
   const shortDescription = (formData.get("shortDescription") as string) || null;
   const description = (formData.get("description") as string) || null;
-  const priceCents = parseInt(formData.get("priceCents") as string, 10) || 0;
+  const priceCents = Math.round(parseFloat(formData.get("priceCents") as string || "0") * 100) || 0;
   const categoryId = (formData.get("categoryId") as string) || null;
   const isFeatured = formData.get("isFeatured") === "on";
   const status = formData.get("status") as string;
@@ -92,6 +92,14 @@ export async function deleteCourseAction(courseId: string) {
 export async function updateCourseSortOrderAction(courseId: string, sortOrder: number) {
   await requireAdmin();
   await execute("UPDATE courses SET sort_order = ? WHERE id = ?", [sortOrder, courseId]);
+  revalidatePath("/admin/courses");
+  return { success: true };
+}
+
+export async function toggleCourseStatusAction(courseId: string, currentStatus: string) {
+  await requireAdmin();
+  const newStatus = currentStatus === "PUBLISHED" ? "DRAFT" : "PUBLISHED";
+  await execute("UPDATE courses SET status = ? WHERE id = ?", [newStatus, courseId]);
   revalidatePath("/admin/courses");
   return { success: true };
 }
@@ -288,6 +296,13 @@ export async function manualEnrollAction(_prev: unknown, formData: FormData) {
 export async function revokeEnrollmentAction(enrollmentId: string) {
   await requireAdmin();
   await execute("UPDATE enrollments SET status = 'REVOKED' WHERE id = ?", [enrollmentId]);
+  revalidatePath("/admin/enrollments");
+  return { success: true };
+}
+
+export async function reactivateEnrollmentAction(enrollmentId: string) {
+  await requireAdmin();
+  await execute("UPDATE enrollments SET status = 'ACTIVE' WHERE id = ?", [enrollmentId]);
   revalidatePath("/admin/enrollments");
   return { success: true };
 }
