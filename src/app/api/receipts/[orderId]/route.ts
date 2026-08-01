@@ -72,16 +72,25 @@ export async function GET(
   doc.moveTo(50, tableTop + 15).lineTo(550, tableTop + 15).stroke();
 
   // Table item
-  const itemY = tableTop + 25;
+  let itemY = tableTop + 25;
+  const originalAmount = order.amount_cents || order.final_amount_cents;
+  const finalAmount = order.final_amount_cents || order.amount_cents;
+
   doc.font("Helvetica").text(order.course_title, 50, itemY);
-  doc.text(formatCurrency(order.amount_cents, order.currency), 450, itemY, { width: 100, align: "right" });
+  doc.text(formatCurrency(originalAmount, order.currency), 450, itemY, { width: 100, align: "right" });
+
+  if (order.applied_code && order.discount_cents > 0) {
+    itemY += 20;
+    doc.font("Helvetica-Oblique").text(`Discount Code (${order.applied_code})`, 50, itemY);
+    doc.text(`-${formatCurrency(order.discount_cents, order.currency)}`, 450, itemY, { width: 100, align: "right" });
+  }
 
   doc.moveTo(50, itemY + 20).lineTo(550, itemY + 20).stroke();
 
   // Table total
   const totalY = itemY + 35;
   doc.font("Helvetica-Bold").text("Total Paid", 350, totalY);
-  doc.text(formatCurrency(order.amount_cents, order.currency), 450, totalY, { width: 100, align: "right" });
+  doc.text(formatCurrency(finalAmount, order.currency), 450, totalY, { width: 100, align: "right" });
 
   doc.moveDown(4);
   doc.font("Helvetica-Oblique").text("This is a system generated invoice confirming your payment.", 50, doc.y + 40, { align: "center" });

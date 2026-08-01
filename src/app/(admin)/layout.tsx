@@ -14,14 +14,16 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           </Link>
           <Link href="/admin" className="block rounded-md px-3 py-2 hover:bg-accent">Overview</Link>
           <Link href="/admin/courses" className="block rounded-md px-3 py-2 hover:bg-accent">Courses</Link>
+          <Link href="/admin/coupons" className="block rounded-md px-3 py-2 hover:bg-accent">Coupons & Referrals</Link>
           <Link href="/admin/orders" className="block rounded-md px-3 py-2 hover:bg-accent">Orders</Link>
           <Link href="/admin/students" className="block rounded-md px-3 py-2 hover:bg-accent">Students</Link>
           <Link href="/admin/enrollments" className="block rounded-md px-3 py-2 hover:bg-accent">Enrollments</Link>
-          <div className="mt-4 mb-2 px-3 text-[11px] uppercase tracking-wide text-muted-foreground">Settings</div>
+          <div className="mt-4 mb-2 px-3 text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">Settings</div>
           <Link href="/admin/settings/site" className="block rounded-md px-3 py-2 hover:bg-accent">Site & Branding</Link>
           <Link href="/admin/settings/payment" className="block rounded-md px-3 py-2 hover:bg-accent">QR Payment</Link>
-          <Link href="/admin/settings/email" className="block rounded-md px-3 py-2 hover:bg-accent">Email (SMTP)</Link>
+          <Link href="/admin/settings/email-senders" className="block rounded-md px-3 py-2 hover:bg-accent">Email Senders (SMTP)</Link>
           <Link href="/admin/email-templates" className="block rounded-md px-3 py-2 hover:bg-accent">Email Templates</Link>
+          <Link href="/admin/settings/exports" className="block rounded-md px-3 py-2 hover:bg-accent">Data Exports</Link>
           <Link href="/admin/seo" className="block rounded-md px-3 py-2 hover:bg-accent">SEO</Link>
           <Link href="/admin/homepage" className="block rounded-md px-3 py-2 hover:bg-accent">Homepage Sections</Link>
         </nav>

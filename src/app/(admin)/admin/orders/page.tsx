@@ -39,6 +39,7 @@ export default async function AdminOrdersPage() {
               <th className="px-4 py-3 text-left font-medium">Student</th>
               <th className="px-4 py-3 text-left font-medium">Course</th>
               <th className="px-4 py-3 text-left font-medium">Amount</th>
+              <th className="px-4 py-3 text-left font-medium">Code</th>
               <th className="px-4 py-3 text-left font-medium">Txn ID</th>
               <th className="px-4 py-3 text-left font-medium">Status</th>
               <th className="px-4 py-3 text-left font-medium">Date</th>
@@ -52,10 +53,25 @@ export default async function AdminOrdersPage() {
                 <td className="px-4 py-3">
                   <div className="font-medium">{order.user_name || "—"}</div>
                   <div className="text-xs text-muted-foreground">{order.user_email}</div>
+                  {order.payer_mobile && <div className="text-[11px] text-muted-foreground">{order.payer_mobile}</div>}
                 </td>
                 <td className="px-4 py-3">{order.course_title}</td>
                 <td className="px-4 py-3 font-medium">
-                  {formatCurrency(order.amount_cents, order.currency)}
+                  {formatCurrency(order.final_amount_cents || order.amount_cents, order.currency)}
+                  {order.discount_cents > 0 && (
+                    <div className="text-[11px] text-green-600 font-normal">
+                      -{formatCurrency(order.discount_cents, order.currency)}
+                    </div>
+                  )}
+                </td>
+                <td className="px-4 py-3">
+                  {order.applied_code ? (
+                    <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded font-semibold">
+                      {order.applied_code}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">—</span>
+                  )}
                 </td>
                 <td className="px-4 py-3 font-mono text-xs">{order.transaction_id || "—"}</td>
                 <td className="px-4 py-3">

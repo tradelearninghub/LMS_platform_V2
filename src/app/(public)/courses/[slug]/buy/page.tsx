@@ -28,7 +28,7 @@ export default async function BuyCoursePage({ params }: Props) {
   if (!session?.user?.id) redirect("/login");
 
   const course = await queryOne(
-    "SELECT id, title, slug, price_cents, currency FROM courses WHERE slug = ? AND status = 'PUBLISHED'",
+    "SELECT id, title, slug, price_cents, selling_price_cents, mrp_cents, currency FROM courses WHERE slug = ? AND status = 'PUBLISHED'",
     [slug]
   ).catch(() => null);
   if (!course) notFound();
@@ -40,6 +40,12 @@ export default async function BuyCoursePage({ params }: Props) {
   ).catch(() => null);
   if (enrollment) redirect(`/learn/${slug}`);
 
+  // Fetch student details for pre-filling
+  const currentUser = await queryOne(
+    "SELECT name, email FROM users WHERE id = ?",
+    [session.user.id]
+  ).catch(() => null);
+
   // Pending order?
   const pendingOrder = await queryOne(
     "SELECT * FROM orders WHERE user_id = ? AND course_id = ? AND status = 'PENDING' LIMIT 1",
@@ -47,9 +53,11 @@ export default async function BuyCoursePage({ params }: Props) {
   ).catch(() => null);
 
   const paymentSettings = await getPaymentSettings();
+  const sellingPrice = course.selling_price_cents || course.price_cents || 0;
+  const mrp = course.mrp_cents || course.price_cents || 0;
 
   // Free course: auto-enroll
-  if (course.price_cents === 0) {
+  if (sellingPrice === 0) {
     const enrollId = crypto.randomUUID();
     await execute(
       "INSERT INTO enrollments (id, user_id, course_id, status, source) VALUES (?, ?, ?, 'ACTIVE', 'purchase')",
@@ -71,20 +79,6 @@ export default async function BuyCoursePage({ params }: Props) {
           Our team is reviewing it. You&apos;ll be notified once it&apos;s approved.
         </div>
       )}
-
-      {/* Payment details */}
-      <div className="mt-8 rounded-xl border bg-card p-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">Course</span>
-          <span className="font-medium">{course.title}</span>
-        </div>
-        <div className="flex items-center justify-between border-t pt-4">
-          <span className="text-sm text-muted-foreground">Amount</span>
-          <span className="text-xl font-bold">
-            {formatCurrency(course.price_cents, course.currency)}
-          </span>
-        </div>
-      </div>
 
       {/* Payment instructions */}
       <div className="mt-6 rounded-xl border bg-card p-6 space-y-5">
@@ -133,7 +127,15 @@ export default async function BuyCoursePage({ params }: Props) {
 
       {/* Order form */}
       {!pendingOrder && (
-        <BuyForm courseId={course.id} amountCents={course.price_cents} currency={course.currency} />
+        <BuyForm
+          courseId={course.id}
+          sellingPriceCents={sellingPrice}
+          mrpCents={mrp}
+          currency={course.currency}
+          userName={currentUser?.name || session.user.name || ""}
+          userEmail={currentUser?.email || session.user.email || ""}
+          courseTitle={course.title}
+        />
       )}
     </div>
   );

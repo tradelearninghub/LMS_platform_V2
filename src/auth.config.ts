@@ -30,6 +30,7 @@ export const authConfig: NextAuthConfig = {
       if (user) {
         token.role = (user as { role?: string }).role ?? "STUDENT";
         token.id = user.id;
+        token.sessionId = (user as { sessionId?: string }).sessionId;
       }
       return token;
     },
@@ -37,9 +38,11 @@ export const authConfig: NextAuthConfig = {
       if (session.user) {
         (session.user as { id?: string }).id = token.id as string;
         (session.user as { role?: string }).role = token.role as string;
+        (session.user as { sessionId?: string }).sessionId = token.sessionId as string;
       }
       return session;
     },
+
   },
   providers: [], // populated in auth.ts
 };

@@ -61,6 +61,31 @@ export function SiteSettingsForm({ settings }: { settings: Settings }) {
       )}
 
       <fieldset className="rounded-xl border bg-card p-5 space-y-4">
+        <legend className="px-2 font-semibold text-sm">Feature Flags</legend>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              name="couponsEnabled"
+              type="checkbox"
+              defaultChecked={settings.couponsEnabled === "true"}
+              className="rounded"
+            />
+            <span className="text-sm font-medium">Enable Coupon System</span>
+          </label>
+
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              name="referralsEnabled"
+              type="checkbox"
+              defaultChecked={settings.referralsEnabled === "true"}
+              className="rounded"
+            />
+            <span className="text-sm font-medium">Enable Referral System</span>
+          </label>
+        </div>
+      </fieldset>
+
+      <fieldset className="rounded-xl border bg-card p-5 space-y-4">
         <legend className="px-2 font-semibold text-sm">Branding</legend>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Field name="siteName" label="Site name" value={settings.siteName} />

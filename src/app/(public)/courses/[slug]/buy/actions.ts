@@ -3,6 +3,7 @@
 import { auth } from "@/auth";
 import { queryOne, execute } from "@/lib/db";
 import { generateOrderNumber } from "@/lib/utils";
+import { validateCoupon } from "@/lib/coupons";
 import crypto from "crypto";
 
 export type OrderState = {
@@ -26,6 +27,7 @@ export async function createOrderAction(
   const transactionId = formData.get("transactionId") as string;
   const paymentScreenshotUrl = (formData.get("paymentScreenshotUrl") as string) || null;
   const studentNotes = (formData.get("studentNotes") as string) || null;
+  const appliedCode = (formData.get("appliedCode") as string)?.trim().toUpperCase() || null;
 
   if (!courseId || !payerName || !payerMobile || !transactionId || !paymentScreenshotUrl) {
     return { error: "Please fill in all required fields, including the payment screenshot." };
@@ -49,18 +51,33 @@ export async function createOrderAction(
   );
   if (enrolled && enrolled.status === "ACTIVE") return { error: "You are already enrolled in this course." };
 
+  const sellingPrice = course.selling_price_cents || course.price_cents || amountCents;
+  let finalAmountCents = sellingPrice;
+  let discountCents = 0;
+
+  if (appliedCode) {
+    const couponValidation = await validateCoupon(appliedCode, courseId, sellingPrice);
+    if (couponValidation.valid && couponValidation.finalAmountCents !== undefined) {
+      finalAmountCents = couponValidation.finalAmountCents;
+      discountCents = couponValidation.discountCents || 0;
+    }
+  }
+
   const orderNumber = generateOrderNumber();
   const orderId = crypto.randomUUID();
 
   await execute(
-    `INSERT INTO orders (id, order_number, user_id, course_id, amount_cents, currency, status, payer_name, payer_mobile, transaction_id, payment_screenshot_url, student_notes) 
-     VALUES (?, ?, ?, ?, ?, ?, 'PENDING', ?, ?, ?, ?, ?)`,
+    `INSERT INTO orders (id, order_number, user_id, course_id, amount_cents, applied_code, discount_cents, final_amount_cents, currency, status, payer_name, payer_mobile, transaction_id, payment_screenshot_url, student_notes) 
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING', ?, ?, ?, ?, ?)`,
     [
       orderId,
       orderNumber,
       session.user.id,
       courseId,
-      amountCents,
+      sellingPrice,
+      appliedCode,
+      discountCents,
+      finalAmountCents,
       currency,
       payerName,
       payerMobile,

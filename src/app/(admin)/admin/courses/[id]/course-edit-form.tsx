@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useTransition } from "react";
+import { useActionState, useTransition, useState } from "react";
 import {
   updateCourseAction,
   createModuleAction,
@@ -16,6 +16,8 @@ type Lesson = {
   id: string;
   title: string;
   videoUrl: string | null;
+  contentType?: string;
+  pdfFileKey?: string | null;
   durationSeconds: number;
   isPreview: boolean;
   description: string | null;
@@ -33,6 +35,8 @@ type Course = {
   shortDescription: string | null;
   description: string | null;
   priceCents: number;
+  mrpCents?: number;
+  sellingPriceCents?: number;
   currency: string;
   status: string;
   isFeatured: boolean;
@@ -57,6 +61,33 @@ export function CourseEditForm({
   const [lessonState, lessonAction, isAddingLesson] = useActionState(createLessonAction, {} as any);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+
+  // Active lesson content type selection state for lesson creation
+  const [selectedContentType, setSelectedContentType] = useState<Record<string, "URL" | "PDF">>({});
+  const [uploadedPdfKeys, setUploadedPdfKeys] = useState<Record<string, string>>({});
+  const [uploadingPdf, setUploadingPdf] = useState<Record<string, boolean>>({});
+
+  const handlePdfUpload = async (moduleId: string, file: File) => {
+    setUploadingPdf((prev) => ({ ...prev, [moduleId]: true }));
+    const fd = new FormData();
+    fd.append("file", file);
+    try {
+      const res = await fetch("/api/upload-pdf", { method: "POST", body: fd });
+      const data = await res.json();
+      if (data.fileKey) {
+        setUploadedPdfKeys((prev) => ({ ...prev, [moduleId]: data.fileKey }));
+      } else {
+        alert(data.error || "PDF upload failed");
+      }
+    } catch {
+      alert("PDF upload failed");
+    } finally {
+      setUploadingPdf((prev) => ({ ...prev, [moduleId]: false }));
+    }
+  };
+
+  const initialMrp = (course.mrpCents || course.priceCents || 0) / 100;
+  const initialSellingPrice = (course.sellingPriceCents || course.priceCents || 0) / 100;
 
   return (
     <div className="space-y-8 max-w-4xl">
@@ -132,10 +163,19 @@ export function CourseEditForm({
               }} className="rounded-md border bg-secondary px-3 py-2 text-sm" title="Create Category">+</button>
             </div>
           </div>
-          <label className="block">
-            <span className="text-sm font-medium">Price (INR / Rupees)</span>
-            <input name="priceCents" type="number" step="0.01" defaultValue={course.priceCents / 100} className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
-          </label>
+
+          {/* V3 Dual Pricing */}
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block">
+              <span className="text-sm font-medium">MRP (List Price ₹)</span>
+              <input name="mrpCents" type="number" step="0.01" defaultValue={initialMrp} className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+            </label>
+            <label className="block">
+              <span className="text-sm font-medium">Selling Price (₹)</span>
+              <input name="sellingPriceCents" type="number" step="0.01" defaultValue={initialSellingPrice} className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+            </label>
+          </div>
+
           <div className="block">
             <span className="text-sm font-medium">Thumbnail URL</span>
             <div className="flex items-center gap-2 mt-1">
@@ -196,80 +236,133 @@ export function CourseEditForm({
           <h2 className="text-lg font-semibold">Modules & Lessons</h2>
         </div>
 
-        {course.modules.map((mod) => (
-          <div key={mod.id} className="rounded-xl border bg-card">
-            <div className="flex items-center justify-between px-5 py-4 border-b">
-              <h3 className="font-medium">{mod.title}</h3>
-              <button
-                onClick={() => {
-                  if (confirm("Delete this module and all its lessons?")) {
-                    startTransition(() => { deleteModuleAction(mod.id); });
-                  }
-                }}
-                className="text-xs text-destructive hover:underline"
-              >
-                Delete module
-              </button>
-            </div>
+        {course.modules.map((mod) => {
+          const typeForMod = selectedContentType[mod.id] || "URL";
+          const uploadedKey = uploadedPdfKeys[mod.id] || "";
+          const isUploading = uploadingPdf[mod.id] || false;
 
-            {mod.lessons.map((lesson) => (
-              <div
-                key={lesson.id}
-                className="flex items-center justify-between px-5 py-3 border-b last:border-b-0 text-sm"
-              >
-                <div className="flex items-center gap-3">
-                  <span>{lesson.title}</span>
-                  {lesson.isPreview && (
-                    <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-medium uppercase">
-                      Preview
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className="text-xs text-muted-foreground">
-                    {Math.floor(lesson.durationSeconds / 60)}m
-                  </span>
-                  <button
-                    onClick={() => {
-                      if (confirm("Delete this lesson?")) {
-                        startTransition(() => { deleteLessonAction(lesson.id); });
-                      }
-                    }}
-                    className="text-xs text-destructive hover:underline"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            ))}
-
-            {/* Add lesson form */}
-            <details className="border-t">
-              <summary className="px-5 py-3 text-sm text-primary cursor-pointer hover:bg-accent/50">
-                + Add lesson
-              </summary>
-              <form action={lessonAction} className="px-5 py-4 space-y-3 border-t">
-                <input type="hidden" name="moduleId" value={mod.id} />
-                {lessonState?.error && (
-                  <p className="text-xs text-destructive">{lessonState.error}</p>
-                )}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <input name="title" placeholder="Lesson title *" required className="rounded-md border border-input bg-background px-3 py-2 text-sm" />
-                  <input name="videoUrl" placeholder="Video URL (Google Drive)" className="rounded-md border border-input bg-background px-3 py-2 text-sm" />
-                  <input name="durationSeconds" type="number" placeholder="Duration (seconds)" defaultValue="0" className="rounded-md border border-input bg-background px-3 py-2 text-sm" />
-                  <label className="flex items-center gap-2">
-                    <input name="isPreview" type="checkbox" className="rounded" />
-                    <span className="text-sm">Preview lesson</span>
-                  </label>
-                </div>
-                <textarea name="description" placeholder="Description" rows={2} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none" />
-                <button type="submit" disabled={isAddingLesson} className="rounded-md bg-primary px-4 py-1.5 text-primary-foreground text-sm font-medium hover:opacity-90 disabled:opacity-50">
-                  {isAddingLesson ? "Adding…" : "Add Lesson"}
+          return (
+            <div key={mod.id} className="rounded-xl border bg-card">
+              <div className="flex items-center justify-between px-5 py-4 border-b">
+                <h3 className="font-medium">{mod.title}</h3>
+                <button
+                  onClick={() => {
+                    if (confirm("Delete this module and all its lessons?")) {
+                      startTransition(() => { deleteModuleAction(mod.id); });
+                    }
+                  }}
+                  className="text-xs text-destructive hover:underline"
+                >
+                  Delete module
                 </button>
-              </form>
-            </details>
-          </div>
-        ))}
+              </div>
+
+              {mod.lessons.map((lesson) => (
+                <div
+                  key={lesson.id}
+                  className="flex items-center justify-between px-5 py-3 border-b last:border-b-0 text-sm"
+                >
+                  <div className="flex items-center gap-3">
+                    <span>{lesson.title}</span>
+                    <span className="rounded bg-muted px-2 py-0.5 text-[10px] font-mono font-medium uppercase">
+                      {lesson.contentType || "URL"}
+                    </span>
+                    {lesson.isPreview && (
+                      <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-medium uppercase">
+                        Preview
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-muted-foreground">
+                      {Math.floor(lesson.durationSeconds / 60)}m
+                    </span>
+                    <button
+                      onClick={() => {
+                        if (confirm("Delete this lesson?")) {
+                          startTransition(() => { deleteLessonAction(lesson.id); });
+                        }
+                      }}
+                      className="text-xs text-destructive hover:underline"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+
+              {/* Add lesson form */}
+              <details className="border-t">
+                <summary className="px-5 py-3 text-sm text-primary cursor-pointer hover:bg-accent/50">
+                  + Add lesson
+                </summary>
+                <form action={lessonAction} className="px-5 py-4 space-y-3 border-t">
+                  <input type="hidden" name="moduleId" value={mod.id} />
+                  {lessonState?.error && (
+                    <p className="text-xs text-destructive">{lessonState.error}</p>
+                  )}
+
+                  <div className="flex items-center gap-4 text-xs font-medium border-b pb-2">
+                    <span>Content Type:</span>
+                    <label className="flex items-center gap-1.5 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="contentType"
+                        value="URL"
+                        checked={typeForMod === "URL"}
+                        onChange={() => setSelectedContentType((prev) => ({ ...prev, [mod.id]: "URL" }))}
+                      />
+                      <span>URL (Video Link)</span>
+                    </label>
+                    <label className="flex items-center gap-1.5 cursor-pointer">
+                      <input
+                        type="radio"
+                        name="contentType"
+                        value="PDF"
+                        checked={typeForMod === "PDF"}
+                        onChange={() => setSelectedContentType((prev) => ({ ...prev, [mod.id]: "PDF" }))}
+                      />
+                      <span>Upload PDF Document</span>
+                    </label>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <input name="title" placeholder="Lesson title *" required className="rounded-md border border-input bg-background px-3 py-2 text-sm" />
+
+                    {typeForMod === "URL" ? (
+                      <input name="videoUrl" placeholder="Video URL (Google Drive preview)" className="rounded-md border border-input bg-background px-3 py-2 text-sm" />
+                    ) : (
+                      <div>
+                        <input type="hidden" name="pdfFileKey" value={uploadedKey} />
+                        <input
+                          type="file"
+                          accept="application/pdf"
+                          disabled={isUploading}
+                          onChange={(e) => {
+                            if (e.target.files?.[0]) handlePdfUpload(mod.id, e.target.files[0]);
+                          }}
+                          className="w-full text-xs file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:bg-primary file:text-primary-foreground"
+                        />
+                        {isUploading && <p className="text-[11px] text-muted-foreground mt-1">Uploading PDF...</p>}
+                        {uploadedKey && <p className="text-[11px] text-green-600 mt-1">✓ PDF uploaded successfully</p>}
+                      </div>
+                    )}
+
+                    <input name="durationSeconds" type="number" placeholder="Duration (seconds)" defaultValue="0" className="rounded-md border border-input bg-background px-3 py-2 text-sm" />
+                    <label className="flex items-center gap-2">
+                      <input name="isPreview" type="checkbox" className="rounded" />
+                      <span className="text-sm">Preview lesson</span>
+                    </label>
+                  </div>
+                  <textarea name="description" placeholder="Description" rows={2} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm resize-none" />
+                  <button type="submit" disabled={isAddingLesson || isUploading} className="rounded-md bg-primary px-4 py-1.5 text-primary-foreground text-sm font-medium hover:opacity-90 disabled:opacity-50">
+                    {isAddingLesson ? "Adding…" : "Add Lesson"}
+                  </button>
+                </form>
+              </details>
+            </div>
+          );
+        })}
 
         {/* Add module */}
         <form action={moduleAction} className="rounded-xl border bg-card p-5 flex items-end gap-3">

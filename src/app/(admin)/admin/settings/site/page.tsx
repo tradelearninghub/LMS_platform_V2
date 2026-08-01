@@ -15,6 +15,8 @@ export default async function SiteSettingsPage() {
     tagline: settings.tagline,
     logoUrl: settings.logo_url,
     contactEmail: settings.contact_email,
+    couponsEnabled: settings.coupons_enabled ? "true" : "false",
+    referralsEnabled: settings.referrals_enabled ? "true" : "false",
   };
 
   return (

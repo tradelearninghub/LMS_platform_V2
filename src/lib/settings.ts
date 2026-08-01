@@ -1,4 +1,4 @@
-import { queryOne, execute } from "./db";
+import { queryOne, query, execute } from "./db";
 
 /** Cached fetch of singleton settings rows. */
 export async function getSiteSettings() {
@@ -16,6 +16,8 @@ export async function getSiteSettings() {
       siteName: res.site_name || "Trade Learning Hub",
       logoUrl: res.logo_url || null,
       contactEmail: res.contact_email || null,
+      coupons_enabled: !!res.coupons_enabled,
+      referrals_enabled: !!res.referrals_enabled,
     };
   } catch (err) {
     console.error("[Settings] Failed to fetch site settings, returning defaults:", err);
@@ -28,6 +30,8 @@ export async function getSiteSettings() {
       logoUrl: null,
       contact_email: null,
       contactEmail: null,
+      coupons_enabled: false,
+      referrals_enabled: false,
     };
   }
 }
@@ -76,6 +80,62 @@ export async function getPaymentSettings() {
   }
 }
 
+// ── V3: Multi-sender email system ──────────────────────────────────────────
+
+export interface EmailSender {
+  id: string;
+  label: string;
+  sender_email: string;
+  sender_name: string;
+  smtp_host: string;
+  smtp_port: number;
+  smtp_username: string;
+  smtp_password: string;
+  smtp_secure: boolean;
+  is_default: boolean;
+  active: boolean;
+  created_at: string;
+}
+
+/** Fetch all email sender profiles. */
+export async function getEmailSenders(): Promise<EmailSender[]> {
+  try {
+    const rows = await query("SELECT * FROM email_senders ORDER BY is_default DESC, created_at ASC");
+    return rows as EmailSender[];
+  } catch (err) {
+    console.error("[Settings] Failed to fetch email senders:", err);
+    return [];
+  }
+}
+
+/** Fetch the default email sender profile. */
+export async function getDefaultEmailSender(): Promise<EmailSender | null> {
+  try {
+    const sender = await queryOne("SELECT * FROM email_senders WHERE is_default = TRUE AND active = TRUE LIMIT 1");
+    if (sender) return sender as EmailSender;
+    // Fallback: return any active sender
+    const fallback = await queryOne("SELECT * FROM email_senders WHERE active = TRUE ORDER BY created_at ASC LIMIT 1");
+    return fallback as EmailSender | null;
+  } catch (err) {
+    console.error("[Settings] Failed to fetch default email sender:", err);
+    return null;
+  }
+}
+
+/** Fetch a specific email sender by ID. */
+export async function getEmailSenderById(senderId: string): Promise<EmailSender | null> {
+  try {
+    const sender = await queryOne("SELECT * FROM email_senders WHERE id = ? AND active = TRUE", [senderId]);
+    return sender as EmailSender | null;
+  } catch (err) {
+    console.error("[Settings] Failed to fetch email sender by ID:", err);
+    return null;
+  }
+}
+
+// ── Legacy compatibility (kept for migration period) ──
+
+/** @deprecated Use getDefaultEmailSender() instead */
 export async function getEmailSettings() {
   try {
     let settings = await queryOne("SELECT * FROM email_settings WHERE id = 'default'");
@@ -121,4 +181,3 @@ export async function getEmailSettings() {
     };
   }
 }
-

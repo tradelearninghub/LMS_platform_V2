@@ -1,6 +1,22 @@
 import bcrypt from "bcryptjs";
 import pool from "./db";
 
+/**
+ * Safe column addition helper — uses ER_DUP_FIELDNAME guard to be idempotent.
+ */
+async function safeAddColumn(connection: any, table: string, column: string, definition: string) {
+  try {
+    await connection.query(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+    console.log(`[DB Init] Added ${column} column to ${table} table.`);
+  } catch (err: any) {
+    if (err.code === "ER_DUP_FIELDNAME") {
+      // Column already exists — safe to ignore
+    } else {
+      console.error(`[DB Init] Failed to add ${column} to ${table}:`, err);
+    }
+  }
+}
+
 export async function initializeDatabase() {
   console.log("Initializing database tables...");
 
@@ -66,6 +82,8 @@ export async function initializeDatabase() {
         description TEXT NULL,
         thumbnail_url VARCHAR(500) NULL,
         price_cents INT NOT NULL DEFAULT 0,
+        mrp_cents INT NOT NULL DEFAULT 0,
+        selling_price_cents INT NOT NULL DEFAULT 0,
         currency VARCHAR(10) NOT NULL DEFAULT 'INR',
         status VARCHAR(50) NOT NULL DEFAULT 'DRAFT',
         is_featured BOOLEAN NOT NULL DEFAULT FALSE,
@@ -79,18 +97,17 @@ export async function initializeDatabase() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
-    // Ensure sort_order column exists in courses (migration for existing databases)
-    try {
-      await connection.query("ALTER TABLE courses ADD COLUMN sort_order INT NOT NULL DEFAULT 0;");
-      console.log("[DB Init] Added sort_order column to courses table.");
-    } catch (err: any) {
-      if (err.code === "ER_DUP_FIELDNAME") {
-        // Safe to ignore since it already exists
-        console.log("[DB Init] sort_order column already exists in courses table.");
-      } else {
-        console.error("[DB Init] Failed to verify/add sort_order to courses:", err);
-      }
-    }
+    // ── V3 Migrations: courses table ──
+    // Add sort_order (V2 migration)
+    await safeAddColumn(connection, "courses", "sort_order", "INT NOT NULL DEFAULT 0");
+    // Add mrp_cents + selling_price_cents (V3 migration)
+    await safeAddColumn(connection, "courses", "mrp_cents", "INT NOT NULL DEFAULT 0");
+    await safeAddColumn(connection, "courses", "selling_price_cents", "INT NOT NULL DEFAULT 0");
+    // Migrate existing price_cents → mrp_cents and selling_price_cents for rows that haven't been migrated
+    await connection.query(
+      "UPDATE courses SET mrp_cents = price_cents, selling_price_cents = price_cents WHERE mrp_cents = 0 AND selling_price_cents = 0 AND price_cents > 0"
+    );
+    console.log("[DB Init] Courses pricing migration complete.");
 
     await connection.query(`
       CREATE TABLE IF NOT EXISTS modules (
@@ -109,6 +126,8 @@ export async function initializeDatabase() {
         title VARCHAR(255) NOT NULL,
         description TEXT NULL,
         video_url VARCHAR(500) NULL,
+        content_type VARCHAR(20) NOT NULL DEFAULT 'URL',
+        pdf_file_key VARCHAR(500) NULL,
         duration_seconds INT NOT NULL DEFAULT 0,
         notes TEXT NULL,
         sort_order INT NOT NULL DEFAULT 0,
@@ -116,6 +135,10 @@ export async function initializeDatabase() {
         FOREIGN KEY (module_id) REFERENCES modules(id) ON DELETE CASCADE
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
+
+    // ── V3 Migrations: lessons table ──
+    await safeAddColumn(connection, "lessons", "content_type", "VARCHAR(20) NOT NULL DEFAULT 'URL'");
+    await safeAddColumn(connection, "lessons", "pdf_file_key", "VARCHAR(500) NULL");
 
     await connection.query(`
       CREATE TABLE IF NOT EXISTS lesson_resources (
@@ -165,6 +188,9 @@ export async function initializeDatabase() {
         user_id VARCHAR(255) NOT NULL,
         course_id VARCHAR(255) NOT NULL,
         amount_cents INT NOT NULL,
+        applied_code VARCHAR(100) NULL,
+        discount_cents INT NOT NULL DEFAULT 0,
+        final_amount_cents INT NOT NULL DEFAULT 0,
         currency VARCHAR(10) NOT NULL DEFAULT 'INR',
         status VARCHAR(50) NOT NULL DEFAULT 'PENDING',
         payer_name VARCHAR(255) NULL,
@@ -182,6 +208,16 @@ export async function initializeDatabase() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
+    // ── V3 Migrations: orders table ──
+    await safeAddColumn(connection, "orders", "applied_code", "VARCHAR(100) NULL");
+    await safeAddColumn(connection, "orders", "discount_cents", "INT NOT NULL DEFAULT 0");
+    await safeAddColumn(connection, "orders", "final_amount_cents", "INT NOT NULL DEFAULT 0");
+    // Migrate existing orders: set final_amount_cents = amount_cents where not yet migrated
+    await connection.query(
+      "UPDATE orders SET final_amount_cents = amount_cents WHERE final_amount_cents = 0 AND amount_cents > 0"
+    );
+    console.log("[DB Init] Orders pricing migration complete.");
+
     await connection.query(`
       CREATE TABLE IF NOT EXISTS payment_settings (
         id VARCHAR(50) PRIMARY KEY DEFAULT 'default',
@@ -197,6 +233,7 @@ export async function initializeDatabase() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
+    // Legacy email_settings table — kept for migration purposes, replaced by email_senders
     await connection.query(`
       CREATE TABLE IF NOT EXISTS email_settings (
         id VARCHAR(50) PRIMARY KEY DEFAULT 'default',
@@ -212,15 +249,39 @@ export async function initializeDatabase() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
+    // ── V3: New email_senders table (replaces email_settings) ──
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS email_senders (
+        id VARCHAR(255) PRIMARY KEY,
+        label VARCHAR(255) NOT NULL,
+        sender_email VARCHAR(255) NOT NULL,
+        sender_name VARCHAR(255) NOT NULL,
+        smtp_host VARCHAR(255) NOT NULL,
+        smtp_port INT NOT NULL,
+        smtp_username VARCHAR(255) NOT NULL,
+        smtp_password VARCHAR(255) NOT NULL,
+        smtp_secure BOOLEAN NOT NULL DEFAULT TRUE,
+        is_default BOOLEAN NOT NULL DEFAULT FALSE,
+        active BOOLEAN NOT NULL DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
     await connection.query(`
       CREATE TABLE IF NOT EXISTS site_settings (
         id VARCHAR(50) PRIMARY KEY DEFAULT 'default',
         site_name VARCHAR(255) NOT NULL DEFAULT 'Trade Learning Hub',
         tagline VARCHAR(255) NULL,
         logo_url VARCHAR(500) NULL,
-        contact_email VARCHAR(255) NULL
+        contact_email VARCHAR(255) NULL,
+        coupons_enabled BOOLEAN NOT NULL DEFAULT FALSE,
+        referrals_enabled BOOLEAN NOT NULL DEFAULT FALSE
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
+
+    // ── V3 Migrations: site_settings ──
+    await safeAddColumn(connection, "site_settings", "coupons_enabled", "BOOLEAN NOT NULL DEFAULT FALSE");
+    await safeAddColumn(connection, "site_settings", "referrals_enabled", "BOOLEAN NOT NULL DEFAULT FALSE");
 
     await connection.query(`
       CREATE TABLE IF NOT EXISTS email_templates (
@@ -230,9 +291,24 @@ export async function initializeDatabase() {
         subject VARCHAR(255) NOT NULL,
         blocks_json TEXT NOT NULL,
         compiled_html TEXT NULL,
-        is_active BOOLEAN NOT NULL DEFAULT TRUE
+        is_active BOOLEAN NOT NULL DEFAULT TRUE,
+        sender_id VARCHAR(255) NULL
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
+
+    // ── V3 Migration: email_templates ──
+    await safeAddColumn(connection, "email_templates", "sender_id", "VARCHAR(255) NULL");
+    // Add FK constraint if not exists (safe to attempt)
+    try {
+      await connection.query(
+        "ALTER TABLE email_templates ADD CONSTRAINT fk_email_templates_sender FOREIGN KEY (sender_id) REFERENCES email_senders(id) ON DELETE SET NULL"
+      );
+    } catch (err: any) {
+      // Ignore duplicate key name or if constraint already exists
+      if (!err.message?.includes("Duplicate") && err.code !== "ER_FK_DUP_NAME" && err.code !== "ER_DUP_KEYNAME") {
+        // Silently ignore — FK may already exist
+      }
+    }
 
     await connection.query(`
       CREATE TABLE IF NOT EXISTS email_logs (
@@ -259,16 +335,40 @@ export async function initializeDatabase() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
+    // ── V3: Dropped nav_menu_items (dead schema) ──
+    // Table is no longer created. Drop it if it exists from a prior version.
+    await connection.query("DROP TABLE IF EXISTS nav_menu_items");
+    console.log("[DB Init] Dropped nav_menu_items table (unused).");
+
+    // ── V3: New sessions table (for session-limit enforcement) ──
     await connection.query(`
-      CREATE TABLE IF NOT EXISTS nav_menu_items (
+      CREATE TABLE IF NOT EXISTS sessions (
         id VARCHAR(255) PRIMARY KEY,
-        label VARCHAR(255) NOT NULL,
-        url VARCHAR(255) NOT NULL,
-        location VARCHAR(50) NOT NULL DEFAULT 'header',
-        sort_order INT NOT NULL DEFAULT 0,
-        open_in_new BOOLEAN NOT NULL DEFAULT FALSE,
-        parent_id VARCHAR(255) NULL,
-        FOREIGN KEY (parent_id) REFERENCES nav_menu_items(id) ON DELETE SET NULL
+        user_id VARCHAR(255) NOT NULL,
+        session_token VARCHAR(500) NOT NULL,
+        device_info VARCHAR(255) NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        last_active_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        revoked BOOLEAN NOT NULL DEFAULT FALSE,
+        UNIQUE INDEX idx_session_token (session_token),
+        INDEX idx_session_user (user_id),
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
+    // ── V3: New coupons table ──
+    await connection.query(`
+      CREATE TABLE IF NOT EXISTS coupons (
+        id VARCHAR(255) PRIMARY KEY,
+        code VARCHAR(100) NOT NULL,
+        type VARCHAR(20) NOT NULL DEFAULT 'COUPON',
+        discount_kind VARCHAR(20) NOT NULL DEFAULT 'FLAT',
+        discount_value INT NOT NULL DEFAULT 0,
+        active BOOLEAN NOT NULL DEFAULT TRUE,
+        course_id VARCHAR(255) NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE INDEX idx_coupon_code (code),
+        FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
@@ -328,6 +428,33 @@ export async function initializeDatabase() {
       );
     }
 
+    // ── V3: Migrate email_settings → email_senders ──
+    const [existingSenders] = await connection.query("SELECT id FROM email_senders LIMIT 1");
+    if ((existingSenders as any[]).length === 0) {
+      // Check if there's a configured email_settings row to migrate
+      const [legacyEmail] = await connection.query("SELECT * FROM email_settings WHERE id = 'default'");
+      const legacy = (legacyEmail as any[])[0];
+      if (legacy && legacy.smtp_host) {
+        const senderId = 'sender-migrated-default';
+        await connection.query(
+          `INSERT INTO email_senders (id, label, sender_email, sender_name, smtp_host, smtp_port, smtp_username, smtp_password, smtp_secure, is_default, active)
+           VALUES (?, 'Default (Migrated)', ?, ?, ?, ?, ?, ?, ?, TRUE, ?)`,
+          [
+            senderId,
+            legacy.sender_email || 'no-reply@example.com',
+            legacy.sender_name || 'Trade Learning Hub',
+            legacy.smtp_host,
+            legacy.smtp_port || 587,
+            legacy.smtp_username || '',
+            legacy.smtp_password || '',
+            legacy.smtp_secure ?? true,
+            !!legacy.enabled,
+          ]
+        );
+        console.log("[DB Init] Migrated email_settings → email_senders.");
+      }
+    }
+
     // 4. Seeding sample courses, modules, and lessons
     const [catRows] = await connection.query("SELECT id FROM categories WHERE slug = 'stock-market'");
     let categoryId = "cat-stock-market";
@@ -344,11 +471,11 @@ export async function initializeDatabase() {
     let courseId = "course-smm";
     if ((courseRows as any[]).length === 0) {
       await connection.query(
-        `INSERT INTO courses (id, title, slug, short_description, description, price_cents, currency, status, is_featured, category_id, seo_title, seo_description)
+        `INSERT INTO courses (id, title, slug, short_description, description, price_cents, mrp_cents, selling_price_cents, currency, status, is_featured, category_id, seo_title, seo_description)
          VALUES (?, 'Stock Market Mastery', 'stock-market-mastery', 
                  'A structured path from market basics to working strategies.',
                  'Stock Market Mastery walks you through the fundamentals of equity markets, the core technical analysis toolkit, and a set of repeatable trading strategies — all delivered as bite-sized video lessons.',
-                 499900, 'INR', 'PUBLISHED', true, ?, 'Stock Market Mastery — Trade Learning Hub',
+                 499900, 499900, 499900, 'INR', 'PUBLISHED', true, ?, 'Stock Market Mastery — Trade Learning Hub',
                  'Learn the stock market from basics to advanced strategies with practitioner-led video lessons.')`,
         [courseId, categoryId]
       );
@@ -404,11 +531,11 @@ export async function initializeDatabase() {
     const [forexBasisRows] = await connection.query("SELECT id FROM courses WHERE slug = 'forex-basis'");
     if ((forexBasisRows as any[]).length === 0) {
       await connection.query(
-        `INSERT INTO courses (id, title, slug, short_description, description, price_cents, currency, status, is_featured, category_id, seo_title, seo_description, thumbnail_url)
+        `INSERT INTO courses (id, title, slug, short_description, description, price_cents, mrp_cents, selling_price_cents, currency, status, is_featured, category_id, seo_title, seo_description, thumbnail_url)
          VALUES ('course-forex-basis', 'Forex Basis', 'forex-basis', 
                  'Learn the fundamentals of Forex trading, chart analysis, and risk management.',
                  'Learn the fundamentals of Forex trading, chart analysis, and risk management with practitioner-led video lessons.',
-                 199900, 'INR', 'PUBLISHED', true, ?, 'Forex Basis — Trade Learning Hub',
+                 199900, 199900, 199900, 'INR', 'PUBLISHED', true, ?, 'Forex Basis — Trade Learning Hub',
                  'Learn the fundamentals of Forex trading.', '/images/forex-basis.png')`,
         [categoryId]
       );
@@ -427,11 +554,11 @@ export async function initializeDatabase() {
     const [forexAdvanceRows] = await connection.query("SELECT id FROM courses WHERE slug = 'forex-advance'");
     if ((forexAdvanceRows as any[]).length === 0) {
       await connection.query(
-        `INSERT INTO courses (id, title, slug, short_description, description, price_cents, currency, status, is_featured, category_id, seo_title, seo_description, thumbnail_url)
+        `INSERT INTO courses (id, title, slug, short_description, description, price_cents, mrp_cents, selling_price_cents, currency, status, is_featured, category_id, seo_title, seo_description, thumbnail_url)
          VALUES ('course-forex-advance', 'Forex Advance', 'forex-advance', 
                  'Master advanced Forex trading strategies, smart money concepts, risk management.',
                  'Master advanced Forex trading strategies, smart money concepts, risk management with practitioner-led video lessons.',
-                 219900, 'INR', 'PUBLISHED', true, ?, 'Forex Advance — Trade Learning Hub',
+                 219900, 219900, 219900, 'INR', 'PUBLISHED', true, ?, 'Forex Advance — Trade Learning Hub',
                  'Master advanced Forex trading.', '/images/forex-advance.png')`,
         [categoryId]
       );
@@ -450,11 +577,11 @@ export async function initializeDatabase() {
     const [stockBasicsRows] = await connection.query("SELECT id FROM courses WHERE slug = 'stock-market-basics-for-beginners'");
     if ((stockBasicsRows as any[]).length === 0) {
       await connection.query(
-        `INSERT INTO courses (id, title, slug, short_description, description, price_cents, currency, status, is_featured, category_id, seo_title, seo_description, thumbnail_url)
+        `INSERT INTO courses (id, title, slug, short_description, description, price_cents, mrp_cents, selling_price_cents, currency, status, is_featured, category_id, seo_title, seo_description, thumbnail_url)
          VALUES ('course-stock-basics', 'Stock Market Basics for Beginners', 'stock-market-basics-for-beginners', 
                  'Learn the fundamentals of the stock market, trading basics, chart analysis.',
                  'Learn the fundamentals of the stock market, trading basics, chart analysis with practitioner-led video lessons.',
-                 199900, 'INR', 'PUBLISHED', true, ?, 'Stock Market Basics for Beginners — Trade Learning Hub',
+                 199900, 199900, 199900, 'INR', 'PUBLISHED', true, ?, 'Stock Market Basics for Beginners — Trade Learning Hub',
                  'Learn the stock market basics.', '/images/stock-basics.png')`,
         [categoryId]
       );

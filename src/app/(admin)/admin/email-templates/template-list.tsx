@@ -11,13 +11,27 @@ type Template = {
   subject: string;
   blocksJson: string;
   isActive: boolean;
+  senderId: string | null;
 };
 
-export function EmailTemplateList({ templates }: { templates: Template[] }) {
+type Sender = {
+  id: string;
+  label: string;
+  senderEmail: string;
+  isDefault: boolean;
+};
+
+export function EmailTemplateList({
+  templates,
+  senders,
+}: {
+  templates: Template[];
+  senders: Sender[];
+}) {
   return (
     <div className="space-y-6">
       {templates.map((t) => (
-        <TemplateRow key={t.id} template={t} />
+        <TemplateRow key={t.id} template={t} senders={senders} />
       ))}
       {templates.length === 0 && (
         <p className="text-sm text-muted-foreground">No templates found. Run the seed script.</p>
@@ -26,7 +40,7 @@ export function EmailTemplateList({ templates }: { templates: Template[] }) {
   );
 }
 
-function TemplateRow({ template }: { template: Template }) {
+function TemplateRow({ template, senders }: { template: Template; senders: Sender[] }) {
   const [state, formAction, isPending] = useActionState(updateEmailTemplateAction, {} as any);
   
   const [blocks, setBlocks] = useState<any[]>(() => {
@@ -145,9 +159,9 @@ function TemplateRow({ template }: { template: Template }) {
             </div>
           )}
 
-          {/* Toggle status & subject */}
+          {/* Toggle status, subject, sender */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="md:col-span-2">
+            <div>
               <label className="block">
                 <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1">
                   Email Subject
@@ -160,6 +174,27 @@ function TemplateRow({ template }: { template: Template }) {
                 />
               </label>
             </div>
+
+            <div>
+              <label className="block">
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider block mb-1">
+                  Sender Profile (SMTP)
+                </span>
+                <select
+                  name="senderId"
+                  defaultValue={template.senderId || ""}
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                >
+                  <option value="">Default Sender Profile</option>
+                  {senders.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.label} ({s.senderEmail}) {s.isDefault ? "[Default]" : ""}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
             <div className="flex items-center md:justify-end">
               <label className="flex items-center gap-2.5 cursor-pointer select-none mt-4 md:mt-0">
                 <input

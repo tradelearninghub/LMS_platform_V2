@@ -16,7 +16,8 @@ export async function createCourseAction(_prev: unknown, formData: FormData) {
   const slug = slugify(title);
   const shortDescription = (formData.get("shortDescription") as string) || null;
   const description = (formData.get("description") as string) || null;
-  const priceCents = Math.round(parseFloat(formData.get("priceCents") as string || "0") * 100) || 0;
+  const mrpCents = Math.round(parseFloat(formData.get("mrpCents") as string || "0") * 100) || 0;
+  const sellingPriceCents = Math.round(parseFloat(formData.get("sellingPriceCents") as string || "0") * 100) || 0;
   const categoryId = (formData.get("categoryId") as string) || null;
   const isFeatured = formData.get("isFeatured") === "on";
 
@@ -29,9 +30,9 @@ export async function createCourseAction(_prev: unknown, formData: FormData) {
   const id = crypto.randomUUID();
 
   await execute(
-    `INSERT INTO courses (id, title, slug, short_description, description, price_cents, category_id, is_featured, status)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'DRAFT')`,
-    [id, title, slug, shortDescription, description, priceCents, categoryId, isFeatured]
+    `INSERT INTO courses (id, title, slug, short_description, description, price_cents, mrp_cents, selling_price_cents, category_id, is_featured, status)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'DRAFT')`,
+    [id, title, slug, shortDescription, description, sellingPriceCents, mrpCents, sellingPriceCents, categoryId, isFeatured]
   );
 
   revalidatePath("/admin/courses");
@@ -44,7 +45,8 @@ export async function updateCourseAction(_prev: unknown, formData: FormData) {
   const title = formData.get("title") as string;
   const shortDescription = (formData.get("shortDescription") as string) || null;
   const description = (formData.get("description") as string) || null;
-  const priceCents = Math.round(parseFloat(formData.get("priceCents") as string || "0") * 100) || 0;
+  const mrpCents = Math.round(parseFloat(formData.get("mrpCents") as string || "0") * 100) || 0;
+  const sellingPriceCents = Math.round(parseFloat(formData.get("sellingPriceCents") as string || "0") * 100) || 0;
   const categoryId = (formData.get("categoryId") as string) || null;
   const isFeatured = formData.get("isFeatured") === "on";
   const status = formData.get("status") as string;
@@ -54,19 +56,18 @@ export async function updateCourseAction(_prev: unknown, formData: FormData) {
 
   if (!id || !title) return { error: "Missing required fields" };
 
-  const publishedAt = status === "PUBLISHED" ? new Date() : null;
-
-  // MySQL doesn't have undefined, use null instead
   await execute(
     `UPDATE courses 
-     SET title = ?, short_description = ?, description = ?, price_cents = ?, category_id = ?, 
-         is_featured = ?, status = ?, seo_title = ?, seo_description = ?, thumbnail_url = ?
+     SET title = ?, short_description = ?, description = ?, price_cents = ?, mrp_cents = ?, selling_price_cents = ?,
+         category_id = ?, is_featured = ?, status = ?, seo_title = ?, seo_description = ?, thumbnail_url = ?
      WHERE id = ?`,
     [
       title,
       shortDescription,
       description,
-      priceCents,
+      sellingPriceCents,
+      mrpCents,
+      sellingPriceCents,
       categoryId,
       isFeatured,
       status,
@@ -152,6 +153,8 @@ export async function createLessonAction(_prev: unknown, formData: FormData) {
   const moduleId = formData.get("moduleId") as string;
   const title = formData.get("title") as string;
   const videoUrl = (formData.get("videoUrl") as string) || null;
+  const contentType = (formData.get("contentType") as string) || "URL";
+  const pdfFileKey = (formData.get("pdfFileKey") as string) || null;
   const durationSeconds = parseInt(formData.get("durationSeconds") as string, 10) || 0;
   const description = (formData.get("description") as string) || null;
   const notes = (formData.get("notes") as string) || null;
@@ -167,9 +170,9 @@ export async function createLessonAction(_prev: unknown, formData: FormData) {
   const id = crypto.randomUUID();
 
   await execute(
-    `INSERT INTO lessons (id, module_id, title, video_url, duration_seconds, description, notes, is_preview, sort_order)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    [id, moduleId, title, videoUrl, durationSeconds, description, notes, isPreview, nextSort]
+    `INSERT INTO lessons (id, module_id, title, video_url, content_type, pdf_file_key, duration_seconds, description, notes, is_preview, sort_order)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [id, moduleId, title, videoUrl, contentType, pdfFileKey, durationSeconds, description, notes, isPreview, nextSort]
   );
 
   revalidatePath("/admin/courses");
@@ -181,6 +184,8 @@ export async function updateLessonAction(_prev: unknown, formData: FormData) {
   const id = formData.get("id") as string;
   const title = formData.get("title") as string;
   const videoUrl = (formData.get("videoUrl") as string) || null;
+  const contentType = (formData.get("contentType") as string) || "URL";
+  const pdfFileKey = (formData.get("pdfFileKey") as string) || null;
   const durationSeconds = parseInt(formData.get("durationSeconds") as string, 10) || 0;
   const description = (formData.get("description") as string) || null;
   const notes = (formData.get("notes") as string) || null;
@@ -190,9 +195,9 @@ export async function updateLessonAction(_prev: unknown, formData: FormData) {
 
   await execute(
     `UPDATE lessons 
-     SET title = ?, video_url = ?, duration_seconds = ?, description = ?, notes = ?, is_preview = ? 
+     SET title = ?, video_url = ?, content_type = ?, pdf_file_key = ?, duration_seconds = ?, description = ?, notes = ?, is_preview = ? 
      WHERE id = ?`,
-    [title, videoUrl, durationSeconds, description, notes, isPreview, id]
+    [title, videoUrl, contentType, pdfFileKey, durationSeconds, description, notes, isPreview, id]
   );
   revalidatePath("/admin/courses");
   return { success: true };
@@ -316,10 +321,12 @@ export async function updateSiteSettingsAction(_prev: unknown, formData: FormDat
   const tagline = (formData.get("tagline") as string) || null;
   const logoUrl = (formData.get("logoUrl") as string) || null;
   const contactEmail = (formData.get("contactEmail") as string) || null;
+  const couponsEnabled = formData.get("couponsEnabled") === "on";
+  const referralsEnabled = formData.get("referralsEnabled") === "on";
 
   await execute(
-    "UPDATE site_settings SET site_name = ?, tagline = ?, logo_url = ?, contact_email = ? WHERE id = 'default'",
-    [siteName, tagline, logoUrl, contactEmail]
+    "UPDATE site_settings SET site_name = ?, tagline = ?, logo_url = ?, contact_email = ?, coupons_enabled = ?, referrals_enabled = ? WHERE id = 'default'",
+    [siteName, tagline, logoUrl, contactEmail, couponsEnabled, referralsEnabled]
   );
 
   revalidatePath("/admin/settings/site");
@@ -352,55 +359,92 @@ export async function updatePaymentSettingsAction(_prev: unknown, formData: Form
   return { success: true };
 }
 
-export async function updateEmailSettingsAction(_prev: unknown, formData: FormData) {
+// ── V3: Email Sender CRUD (replaces single email_settings) ──────────────────
+
+export async function createEmailSenderAction(_prev: { error?: string; success?: boolean }, formData: FormData): Promise<{ error?: string; success?: boolean }> {
   await requireAdmin();
-  
-  const enabled = formData.get("enabled") === "on";
-  const smtpHost = (formData.get("smtpHost") as string) || null;
-  const smtpPort = parseInt(formData.get("smtpPort") as string, 10) || null;
-  const smtpUsername = (formData.get("smtpUsername") as string) || null;
-  const smtpPassword = (formData.get("smtpPassword") as string) || null;
+  const label = formData.get("label") as string;
+  const senderEmail = formData.get("senderEmail") as string;
+  const senderName = formData.get("senderName") as string;
+  const smtpHost = formData.get("smtpHost") as string;
+  const smtpPort = parseInt(formData.get("smtpPort") as string, 10) || 587;
+  const smtpUsername = formData.get("smtpUsername") as string;
+  const smtpPassword = formData.get("smtpPassword") as string;
   const smtpSecure = formData.get("smtpSecure") === "on";
-  const senderEmail = (formData.get("senderEmail") as string) || null;
-  const senderName = (formData.get("senderName") as string) || null;
-  const replyTo = (formData.get("replyTo") as string) || null;
+  const isDefault = formData.get("isDefault") === "on";
+
+  if (!label || !senderEmail || !smtpHost) return { error: "Label, sender email, and SMTP host are required" };
+
+  const id = crypto.randomUUID();
+
+  // If setting as default, unset other defaults first
+  if (isDefault) {
+    await execute("UPDATE email_senders SET is_default = FALSE WHERE is_default = TRUE");
+  }
 
   await execute(
-    `UPDATE email_settings 
-     SET enabled = ?, smtp_host = ?, smtp_port = ?, smtp_username = ?, smtp_password = ?, 
-         smtp_secure = ?, sender_email = ?, sender_name = ?, reply_to = ? 
-     WHERE id = 'default'`,
-    [
-      enabled,
-      smtpHost,
-      smtpPort,
-      smtpUsername,
-      smtpPassword,
-      smtpSecure,
-      senderEmail,
-      senderName,
-      replyTo,
-    ]
+    `INSERT INTO email_senders (id, label, sender_email, sender_name, smtp_host, smtp_port, smtp_username, smtp_password, smtp_secure, is_default, active)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE)`,
+    [id, label, senderEmail, senderName || label, smtpHost, smtpPort, smtpUsername || '', smtpPassword || '', smtpSecure, isDefault]
   );
 
-  revalidatePath("/admin/settings/email");
+  revalidatePath("/admin/settings/email-senders");
   return { success: true };
 }
 
-export async function testEmailSettingsAction(_prev: unknown, formData: FormData) {
+export async function updateEmailSenderAction(_prev: { error?: string; success?: boolean }, formData: FormData): Promise<{ error?: string; success?: boolean }> {
   await requireAdmin();
-  
-  const smtpHost = (formData.get("smtpHost") as string) || null;
-  const smtpPort = parseInt(formData.get("smtpPort") as string, 10) || null;
+  const id = formData.get("id") as string;
+  const label = formData.get("label") as string;
+  const senderEmail = formData.get("senderEmail") as string;
+  const senderName = formData.get("senderName") as string;
+  const smtpHost = formData.get("smtpHost") as string;
+  const smtpPort = parseInt(formData.get("smtpPort") as string, 10) || 587;
+  const smtpUsername = formData.get("smtpUsername") as string;
+  const smtpPassword = formData.get("smtpPassword") as string;
+  const smtpPasswordStr = (formData.get("smtpPassword") as string) || "";
+  const smtpSecure = formData.get("smtpSecure") === "on";
+  const isDefault = formData.get("isDefault") === "on";
+  const active = formData.get("active") !== "off";
+
+  if (!id || !label || !senderEmail || !smtpHost) return { error: "Missing required fields" };
+
+  if (isDefault) {
+    await execute("UPDATE email_senders SET is_default = FALSE WHERE is_default = TRUE AND id != ?", [id]);
+  }
+
+  await execute(
+    `UPDATE email_senders
+     SET label = ?, sender_email = ?, sender_name = ?, smtp_host = ?, smtp_port = ?,
+         smtp_username = ?, smtp_password = ?, smtp_secure = ?, is_default = ?, active = ?
+     WHERE id = ?`,
+    [label, senderEmail, senderName || label, smtpHost, smtpPort, smtpUsername || '', smtpPasswordStr, smtpSecure, isDefault, active, id]
+  );
+
+  revalidatePath("/admin/settings/email-senders");
+  return { success: true };
+}
+
+export async function deleteEmailSenderAction(senderId: string) {
+  await requireAdmin();
+  await execute("DELETE FROM email_senders WHERE id = ?", [senderId]);
+  revalidatePath("/admin/settings/email-senders");
+  return { success: true };
+}
+
+export async function testEmailSenderAction(_prev: { error?: string; success?: boolean }, formData: FormData): Promise<{ error?: string; success?: boolean }> {
+  await requireAdmin();
+  const smtpHost = formData.get("smtpHost") as string;
+  const smtpPort = parseInt(formData.get("smtpPort") as string, 10) || 587;
   const smtpUsername = (formData.get("smtpUsername") as string) || null;
   const smtpPassword = (formData.get("smtpPassword") as string) || null;
   const smtpSecure = formData.get("smtpSecure") === "on";
-  const senderEmail = (formData.get("senderEmail") as string) || null;
+  const senderEmail = formData.get("senderEmail") as string;
   const senderName = (formData.get("senderName") as string) || null;
-  const toEmail = (formData.get("toEmail") as string) || null;
+  const toEmail = formData.get("toEmail") as string;
 
   if (!smtpHost || !smtpPort || !senderEmail || !toEmail) {
-    return { error: "Host, Port, Sender Email, and Test Recipient Email are required to run a test." };
+    return { error: "Host, Port, Sender Email, and Test Recipient are required." };
   }
 
   try {
@@ -408,35 +452,101 @@ export async function testEmailSettingsAction(_prev: unknown, formData: FormData
       host: smtpHost,
       port: smtpPort,
       secure: smtpSecure,
-      auth: smtpUsername
-        ? { user: smtpUsername, pass: smtpPassword ?? undefined }
-        : undefined,
+      auth: smtpUsername ? { user: smtpUsername, pass: smtpPassword ?? undefined } : undefined,
     });
 
     const from = senderName ? `"${senderName}" <${senderEmail}>` : senderEmail;
-    
+
     await transporter.sendMail({
       from,
       to: toEmail,
-      subject: "Test Email from LMS Admin",
-      text: "Hello! This is a test email to verify your SMTP settings in the LMS platform.",
-      html: `
-        <div style="font-family: sans-serif; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #2563eb;">SMTP Connection Test</h2>
-          <p>Hello,</p>
-          <p>This is a test email sent from your LMS platform admin dashboard.</p>
-          <p><strong>Status:</strong> Success! NodeMailer successfully connected to your SMTP server and dispatched this email.</p>
-          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
-          <p style="font-size: 12px; color: #666;">Sent on: ${new Date().toLocaleString()}</p>
-        </div>
-      `
+      subject: "Test Email from Trade Learning Hub",
+      text: "This is a test email to verify your SMTP settings.",
+      html: `<div style="font-family: sans-serif; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #2B2B2B;">SMTP Connection Test</h2>
+        <p>This is a test email sent from your LMS admin dashboard.</p>
+        <p><strong>Status:</strong> Success!</p>
+        <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+        <p style="font-size: 12px; color: #666;">Sent on: ${new Date().toLocaleString()}</p>
+      </div>`
     });
 
     return { success: true };
   } catch (error: any) {
     console.error("Test email failed:", error);
-    return { error: error.message || "Failed to send test email. Check your SMTP settings and credentials." };
+    return { error: error.message || "Failed to send test email." };
   }
+}
+
+// ── Legacy Email Settings compatibility ──────────────────────────────────────
+
+export async function updateEmailSettingsAction(_prev: { error?: string; success?: boolean }, formData: FormData): Promise<{ error?: string; success?: boolean }> {
+  return createEmailSenderAction(_prev, formData);
+}
+
+export async function testEmailSettingsAction(_prev: { error?: string; success?: boolean }, formData: FormData): Promise<{ error?: string; success?: boolean }> {
+  return testEmailSenderAction(_prev, formData);
+}
+
+// ── V3: Coupon CRUD ─────────────────────────────────────────────────────────
+
+export async function createCouponAction(_prev: { error?: string; success?: boolean }, formData: FormData): Promise<{ error?: string; success?: boolean }> {
+  await requireAdmin();
+  const code = (formData.get("code") as string)?.trim().toUpperCase();
+  const type = (formData.get("type") as string) || "COUPON";
+  const discountKind = (formData.get("discountKind") as string) || "FLAT";
+  const discountValue = parseInt(formData.get("discountValue") as string, 10) || 0;
+  const courseId = (formData.get("courseId") as string) || null;
+
+  if (!code) return { error: "Code is required" };
+  if (discountValue <= 0) return { error: "Discount value must be positive" };
+
+  const existing = await queryOne("SELECT id FROM coupons WHERE code = ?", [code]);
+  if (existing) return { error: "A code with this name already exists" };
+
+  const id = crypto.randomUUID();
+  await execute(
+    "INSERT INTO coupons (id, code, type, discount_kind, discount_value, active, course_id) VALUES (?, ?, ?, ?, ?, TRUE, ?)",
+    [id, code, type, discountKind, discountValue, courseId]
+  );
+
+  revalidatePath("/admin/coupons");
+  return { success: true };
+}
+
+export async function updateCouponAction(_prev: { error?: string; success?: boolean }, formData: FormData): Promise<{ error?: string; success?: boolean }> {
+  await requireAdmin();
+  const id = formData.get("id") as string;
+  const code = (formData.get("code") as string)?.trim().toUpperCase();
+  const type = (formData.get("type") as string) || "COUPON";
+  const discountKind = (formData.get("discountKind") as string) || "FLAT";
+  const discountValue = parseInt(formData.get("discountValue") as string, 10) || 0;
+  const courseId = (formData.get("courseId") as string) || null;
+  const active = formData.get("active") === "on";
+
+  if (!id || !code) return { error: "Missing required fields" };
+
+  await execute(
+    "UPDATE coupons SET code = ?, type = ?, discount_kind = ?, discount_value = ?, active = ?, course_id = ? WHERE id = ?",
+    [code, type, discountKind, discountValue, active, courseId, id]
+  );
+
+  revalidatePath("/admin/coupons");
+  return { success: true };
+}
+
+export async function deleteCouponAction(couponId: string) {
+  await requireAdmin();
+  await execute("DELETE FROM coupons WHERE id = ?", [couponId]);
+  revalidatePath("/admin/coupons");
+  return { success: true };
+}
+
+export async function toggleCouponAction(couponId: string, currentActive: boolean) {
+  await requireAdmin();
+  await execute("UPDATE coupons SET active = ? WHERE id = ?", [!currentActive, couponId]);
+  revalidatePath("/admin/coupons");
+  return { success: true };
 }
 
 // ── Category CRUD ───────────────────────────────────────────────────────────
@@ -465,12 +575,13 @@ export async function updateEmailTemplateAction(_prev: unknown, formData: FormDa
   const subject = formData.get("subject") as string;
   const blocksJson = formData.get("blocksJson") as string;
   const isActive = formData.get("isActive") === "on";
+  const senderId = (formData.get("senderId") as string) || null;
 
   if (!id || !subject) return { error: "Missing fields" };
 
   await execute(
-    "UPDATE email_templates SET subject = ?, blocks_json = ?, is_active = ? WHERE id = ?",
-    [subject, blocksJson, isActive, id]
+    "UPDATE email_templates SET subject = ?, blocks_json = ?, is_active = ?, sender_id = ? WHERE id = ?",
+    [subject, blocksJson, isActive, senderId, id]
   );
 
   revalidatePath("/admin/email-templates");
@@ -497,3 +608,78 @@ export async function updateHomepageSectionAction(_prev: unknown, formData: Form
   revalidatePath("/admin/homepage");
   return { success: true };
 }
+
+// ── Data Exports (V3) ───────────────────────────────────────────────────────
+
+export async function exportStudentsAction(startDate?: string, endDate?: string) {
+  await requireAdmin();
+  let sql = "SELECT id, name, email, mobile, status, role, created_at FROM users WHERE role = 'STUDENT'";
+  const params: any[] = [];
+
+  if (startDate) {
+    sql += " AND created_at >= ?";
+    params.push(`${startDate} 00:00:00`);
+  }
+  if (endDate) {
+    sql += " AND created_at <= ?";
+    params.push(`${endDate} 23:59:59`);
+  }
+
+  sql += " ORDER BY created_at DESC";
+  const rows = await query(sql, params);
+  return rows;
+}
+
+export async function exportOrdersAction(startDate?: string, endDate?: string) {
+  await requireAdmin();
+  let sql = `
+    SELECT o.order_number, u.name AS student_name, u.email AS student_email,
+           c.title AS course_title, o.amount_cents, o.discount_cents, o.final_amount_cents,
+           o.applied_code, o.status, o.transaction_id, o.payer_name, o.payer_mobile, o.created_at
+    FROM orders o
+    JOIN users u ON o.user_id = u.id
+    JOIN courses c ON o.course_id = c.id
+    WHERE 1=1
+  `;
+  const params: any[] = [];
+
+  if (startDate) {
+    sql += " AND o.created_at >= ?";
+    params.push(`${startDate} 00:00:00`);
+  }
+  if (endDate) {
+    sql += " AND o.created_at <= ?";
+    params.push(`${endDate} 23:59:59`);
+  }
+
+  sql += " ORDER BY o.created_at DESC";
+  const rows = await query(sql, params);
+  return rows;
+}
+
+export async function exportEnrollmentsAction(startDate?: string, endDate?: string) {
+  await requireAdmin();
+  let sql = `
+    SELECT u.name AS student_name, u.email AS student_email,
+           c.title AS course_title, e.status, e.source, e.enrolled_at
+    FROM enrollments e
+    JOIN users u ON e.user_id = u.id
+    JOIN courses c ON e.course_id = c.id
+    WHERE 1=1
+  `;
+  const params: any[] = [];
+
+  if (startDate) {
+    sql += " AND e.enrolled_at >= ?";
+    params.push(`${startDate} 00:00:00`);
+  }
+  if (endDate) {
+    sql += " AND e.enrolled_at <= ?";
+    params.push(`${endDate} 23:59:59`);
+  }
+
+  sql += " ORDER BY e.enrolled_at DESC";
+  const rows = await query(sql, params);
+  return rows;
+}
+

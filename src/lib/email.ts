@@ -1,22 +1,34 @@
 import nodemailer, { type Transporter } from "nodemailer";
 import { queryOne, execute } from "./db";
+import { getDefaultEmailSender, getEmailSenderById, type EmailSender } from "./settings";
 
 /**
- * Build a nodemailer transporter from the EmailSettings row.
- * Admin edits SMTP host/port/user/pass at runtime via the dashboard.
+ * Build a nodemailer transporter from an EmailSender profile.
+ * If no senderId is provided, uses the default sender.
  */
-export async function getMailer(): Promise<Transporter | null> {
-  const cfg = await queryOne("SELECT * FROM email_settings WHERE id = 'default'");
-  if (!cfg || !cfg.enabled || !cfg.smtp_host || !cfg.smtp_port) return null;
+export async function getMailer(senderId?: string | null): Promise<{ transporter: Transporter; sender: EmailSender } | null> {
+  let sender: EmailSender | null = null;
 
-  return nodemailer.createTransport({
-    host: cfg.smtp_host,
-    port: cfg.smtp_port,
-    secure: !!cfg.smtp_secure,
-    auth: cfg.smtp_username
-      ? { user: cfg.smtp_username, pass: cfg.smtp_password ?? undefined }
+  if (senderId) {
+    sender = await getEmailSenderById(senderId);
+  }
+
+  if (!sender) {
+    sender = await getDefaultEmailSender();
+  }
+
+  if (!sender || !sender.smtp_host || !sender.smtp_port) return null;
+
+  const transporter = nodemailer.createTransport({
+    host: sender.smtp_host,
+    port: sender.smtp_port,
+    secure: !!sender.smtp_secure,
+    auth: sender.smtp_username
+      ? { user: sender.smtp_username, pass: sender.smtp_password ?? undefined }
       : undefined,
   });
+
+  return { transporter, sender };
 }
 
 export interface SendArgs {
@@ -24,17 +36,17 @@ export interface SendArgs {
   subject: string;
   html: string;
   templateId?: string;
+  senderId?: string | null;
 }
 
-export async function sendEmail({ to, subject, html, templateId }: SendArgs) {
-  const cfg = await queryOne("SELECT * FROM email_settings WHERE id = 'default'");
-  const transporter = await getMailer();
+export async function sendEmail({ to, subject, html, templateId, senderId }: SendArgs) {
+  const mailerResult = await getMailer(senderId);
 
   const id = Math.random().toString(36).substring(2, 11);
   const prefix = "[Trade Learning Hub] ";
   const finalSubject = subject.startsWith("[Trade Learning Hub]") ? subject : `${prefix}${subject}`;
 
-  if (!transporter || !cfg) {
+  if (!mailerResult) {
     await execute(
       "INSERT INTO email_logs (id, to_email, subject, status, error_msg) VALUES (?, ?, ?, ?, ?)",
       [id, to, finalSubject, "failed", "Email not configured"]
@@ -42,12 +54,13 @@ export async function sendEmail({ to, subject, html, templateId }: SendArgs) {
     return { ok: false, error: "Email not configured" };
   }
 
-  const from = cfg.sender_name
-    ? `"${cfg.sender_name}" <${cfg.sender_email}>`
-    : (cfg.sender_email ?? "no-reply@example.com");
+  const { transporter, sender } = mailerResult;
+  const from = sender.sender_name
+    ? `"${sender.sender_name}" <${sender.sender_email}>`
+    : (sender.sender_email ?? "no-reply@example.com");
 
   try {
-    await transporter.sendMail({ from, to, subject: finalSubject, html, replyTo: cfg.reply_to ?? undefined });
+    await transporter.sendMail({ from, to, subject: finalSubject, html });
     await execute(
       "INSERT INTO email_logs (id, to_email, subject, status, sent_at) VALUES (?, ?, ?, ?, ?)",
       [id, to, finalSubject, "sent", new Date()]
@@ -89,7 +102,7 @@ export function compileTemplate(blocksJson: string, variables: Record<string, st
         for (const [k, v] of Object.entries(variables)) {
           url = url.replace(new RegExp(`{{${k}}}`, "g"), v);
         }
-        html += `<div style="padding: 20px 0; text-align: center;"><a href="${url}" style="background-color: #2563eb; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500; display: inline-block;">${b.text || "Click Here"}</a></div>`;
+        html += `<div style="padding: 20px 0; text-align: center;"><a href="${url}" style="background-color: #2B2B2B; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500; display: inline-block;">${b.text || "Click Here"}</a></div>`;
       } else if (b.type === "footer") {
         let text = b.text || "";
         for (const [k, v] of Object.entries(variables)) {
@@ -106,6 +119,7 @@ export function compileTemplate(blocksJson: string, variables: Record<string, st
 
 /**
  * Loads a template by event key, compiles it, and dispatches the email.
+ * Now resolves the sender from the template's sender_id (V3 multi-sender support).
  */
 export async function sendEventEmail(event: string, to: string, variables: Record<string, string>) {
   const template = await queryOne("SELECT * FROM email_templates WHERE event = ? AND is_active = 1", [event]);
@@ -133,5 +147,6 @@ export async function sendEventEmail(event: string, to: string, variables: Recor
     subject,
     html,
     templateId: template.id,
+    senderId: template.sender_id || null, // V3: per-template sender
   });
 }

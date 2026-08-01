@@ -166,11 +166,10 @@ export default async function CourseDetailPage({ params }: Props) {
           <div>
             <h2 className="text-xl font-semibold mb-4">Curriculum</h2>
             <div className="space-y-3">
-              {modules.map((mod, idx) => (
+              {modules.map((mod) => (
                 <details
                   key={mod.id}
                   className="group rounded-lg border bg-card"
-                  open={idx === 0}
                 >
                   <summary className="flex items-center justify-between cursor-pointer px-5 py-4 font-medium hover:bg-accent/50 rounded-lg transition-colors">
                     <span>
@@ -193,11 +192,11 @@ export default async function CourseDetailPage({ params }: Props) {
                     {mod.lessons.map((lesson) => (
                       <div
                         key={lesson.id}
-                        className="flex items-center justify-between px-5 py-3 text-sm border-b last:border-b-0"
+                        className="flex items-center justify-between px-5 py-3 text-sm border-b last:border-b-0 text-muted-foreground select-none"
                       >
                         <div className="flex items-center gap-3">
                           <svg
-                            className="w-4 h-4 text-muted-foreground flex-shrink-0"
+                            className="w-4 h-4 text-muted-foreground/60 flex-shrink-0"
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke="currentColor"
@@ -206,12 +205,7 @@ export default async function CourseDetailPage({ params }: Props) {
                             <path
                               strokeLinecap="round"
                               strokeLinejoin="round"
-                              d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
-                            />
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
                             />
                           </svg>
                           <span>{lesson.title}</span>
@@ -231,6 +225,19 @@ export default async function CourseDetailPage({ params }: Props) {
               ))}
             </div>
           </div>
+
+          {/* Trading Risk Disclaimer */}
+          <div className="rounded-xl border bg-muted/40 p-5 text-xs text-muted-foreground space-y-2 mt-8">
+            <h4 className="font-semibold text-foreground text-sm flex items-center gap-2">
+              <svg className="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              Trading Risk Disclaimer
+            </h4>
+            <p>
+              Trading stocks, futures, options, and foreign currencies involves significant financial risk and is not suitable for every investor. All content provided in this course is strictly for educational and informational purposes only. Past performance does not guarantee future results.
+            </p>
+          </div>
         </div>
 
         {/* Sidebar / CTA card */}
@@ -238,14 +245,29 @@ export default async function CourseDetailPage({ params }: Props) {
           <div className="sticky top-24 rounded-xl border bg-card p-6 space-y-5">
             <div className="aspect-video rounded-lg bg-gradient-to-br from-primary/20 to-accent/30" />
             <div className="text-center">
-              <p className="text-3xl font-bold">
-                {course.price_cents === 0
-                  ? "Free"
-                  : formatCurrency(course.price_cents, course.currency)}
-              </p>
-              {course.price_cents > 0 && (
-                <p className="mt-1 text-sm text-muted-foreground">One-time payment • Lifetime access</p>
-              )}
+              {(() => {
+                const sellingPrice = course.selling_price_cents || course.price_cents || 0;
+                const mrp = course.mrp_cents || course.price_cents || 0;
+                const hasDiscount = mrp > sellingPrice;
+
+                return (
+                  <div>
+                    <div className="flex items-center justify-center gap-3">
+                      <span className="text-3xl font-bold">
+                        {sellingPrice === 0 ? "Free" : formatCurrency(sellingPrice, course.currency)}
+                      </span>
+                      {hasDiscount && (
+                        <span className="text-lg text-muted-foreground line-through">
+                          {formatCurrency(mrp, course.currency)}
+                        </span>
+                      )}
+                    </div>
+                    {sellingPrice > 0 && (
+                      <p className="mt-1 text-sm text-muted-foreground">One-time payment • Lifetime access</p>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
 
             {isEnrolled ? (
@@ -260,7 +282,7 @@ export default async function CourseDetailPage({ params }: Props) {
                 href={`/courses/${course.slug}/buy`}
                 className="block w-full text-center rounded-md bg-primary px-4 py-3 text-primary-foreground font-medium hover:opacity-90 transition-opacity"
               >
-                {course.price_cents === 0 ? "Enroll for Free" : "Buy Now"}
+                {(course.selling_price_cents || course.price_cents) === 0 ? "Enroll for Free" : "Buy Now"}
               </Link>
             ) : (
               <Link
@@ -282,19 +304,13 @@ export default async function CourseDetailPage({ params }: Props) {
                 <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
-                {totalLessons} video lessons
+                {totalLessons} video & PDF lessons
               </li>
               <li className="flex items-center gap-2">
                 <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
                 Structured curriculum
-              </li>
-              <li className="flex items-center gap-2">
-                <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-                Certificate-ready
               </li>
             </ul>
           </div>

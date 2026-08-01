@@ -3,6 +3,8 @@ import { notFound, redirect } from "next/navigation";
 import { query, queryOne } from "@/lib/db";
 import { requireUser } from "@/lib/guards";
 import { LessonCompleteButton } from "./lesson-complete-button";
+import { PDFViewer } from "./pdf-viewer";
+import { generateSignedPdfUrl, getSignedPdfApiUrl } from "@/lib/pdf-security";
 
 type Props = {
   params: Promise<{ courseSlug: string; lessonId: string }>;
@@ -100,13 +102,21 @@ export default async function LessonPage({ params }: Props) {
   const prevLesson = currentIdx > 0 ? allLessons[currentIdx - 1] : null;
   const nextLesson = currentIdx < allLessons.length - 1 ? allLessons[currentIdx + 1] : null;
 
-  // Process video URL for Google Drive embed
+  // Process video URL for Google Drive embed if content_type is URL
   let embedUrl = lesson.video_url;
   if (embedUrl && embedUrl.includes("drive.google.com") && !embedUrl.includes("/preview")) {
     const match = embedUrl.match(/\/d\/([^/]+)/);
     if (match) {
       embedUrl = `https://drive.google.com/file/d/${match[1]}/preview`;
     }
+  }
+
+  // Handle PDF lesson type
+  const isPdfLesson = lesson.content_type === "PDF" && !!lesson.pdf_file_key;
+  let signedPdfUrl = "";
+  if (isPdfLesson) {
+    const token = generateSignedPdfUrl(lessonId, user.id);
+    signedPdfUrl = getSignedPdfApiUrl(token);
   }
 
   return (
@@ -171,8 +181,12 @@ export default async function LessonPage({ params }: Props) {
 
         {/* Main content */}
         <main className="flex-1 overflow-y-auto">
-          {/* Video player */}
-          {embedUrl && (
+          {/* PDF Viewer or Video Player */}
+          {isPdfLesson ? (
+            <div className="p-4 max-w-4xl mx-auto">
+              <PDFViewer pdfUrl={signedPdfUrl} title={lesson.title} />
+            </div>
+          ) : embedUrl ? (
             <div className="aspect-video bg-black">
               <iframe
                 src={embedUrl}
@@ -181,7 +195,7 @@ export default async function LessonPage({ params }: Props) {
                 allowFullScreen
               />
             </div>
-          )}
+          ) : null}
 
           <div className="p-6 max-w-3xl mx-auto space-y-6">
             <div className="flex items-start justify-between gap-4">
