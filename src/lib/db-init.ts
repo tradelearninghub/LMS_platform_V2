@@ -107,7 +107,23 @@ export async function initializeDatabase() {
     await connection.query(
       "UPDATE courses SET mrp_cents = price_cents, selling_price_cents = price_cents WHERE mrp_cents = 0 AND selling_price_cents = 0 AND price_cents > 0"
     );
-    console.log("[DB Init] Courses pricing migration complete.");
+    // Ensure MRPs are set for standard courses where mrp equals selling price
+    await connection.query("UPDATE courses SET mrp_cents = 999900 WHERE slug IN ('forex-basis', 'stock-market-basics-for-beginners') AND (mrp_cents = 0 OR mrp_cents = selling_price_cents)");
+    await connection.query("UPDATE courses SET mrp_cents = 1099900 WHERE slug = 'forex-advance' AND (mrp_cents = 0 OR mrp_cents = selling_price_cents)");
+    await connection.query("UPDATE courses SET mrp_cents = 2499900 WHERE slug = 'stock-market-mastery' AND (mrp_cents = 0 OR mrp_cents = selling_price_cents)");
+
+    // Clean up generic lesson titles ("Session 01", "Session 02", etc.)
+    const genericLessonUpdates = [
+      { pattern: "Session 01", title: "Lesson 1: Introduction & Market Overview" },
+      { pattern: "Session 02", title: "Lesson 2: Currency Pairs, Leverage & Pips" },
+      { pattern: "Session 03", title: "Lesson 3: Technical Analysis & Chart Patterns" },
+      { pattern: "Session 04", title: "Lesson 4: Risk Management & Position Sizing" },
+      { pattern: "Session 05", title: "Lesson 5: Trading Psychology & Strategy Execution" },
+    ];
+    for (const item of genericLessonUpdates) {
+      await connection.query("UPDATE lessons SET title = ? WHERE title = ? OR title LIKE ?", [item.title, item.pattern, `%${item.pattern}%`]);
+    }
+    console.log("[DB Init] Courses pricing and lesson titles migration complete.");
 
     await connection.query(`
       CREATE TABLE IF NOT EXISTS modules (
@@ -475,7 +491,7 @@ export async function initializeDatabase() {
          VALUES (?, 'Stock Market Mastery', 'stock-market-mastery', 
                  'A structured path from market basics to working strategies.',
                  'Stock Market Mastery walks you through the fundamentals of equity markets, the core technical analysis toolkit, and a set of repeatable trading strategies — all delivered as bite-sized video lessons.',
-                 499900, 499900, 499900, 'INR', 'PUBLISHED', true, ?, 'Stock Market Mastery — Trade Learning Hub',
+                 499900, 2499900, 499900, 'INR', 'PUBLISHED', true, ?, 'Stock Market Mastery — Trade Learning Hub',
                  'Learn the stock market from basics to advanced strategies with practitioner-led video lessons.')`,
         [courseId, categoryId]
       );
@@ -535,7 +551,7 @@ export async function initializeDatabase() {
          VALUES ('course-forex-basis', 'Forex Basis', 'forex-basis', 
                  'Learn the fundamentals of Forex trading, chart analysis, and risk management.',
                  'Learn the fundamentals of Forex trading, chart analysis, and risk management with practitioner-led video lessons.',
-                 199900, 199900, 199900, 'INR', 'PUBLISHED', true, ?, 'Forex Basis — Trade Learning Hub',
+                 199900, 999900, 199900, 'INR', 'PUBLISHED', true, ?, 'Forex Basis — Trade Learning Hub',
                  'Learn the fundamentals of Forex trading.', '/images/forex-basis.png')`,
         [categoryId]
       );
@@ -558,7 +574,7 @@ export async function initializeDatabase() {
          VALUES ('course-forex-advance', 'Forex Advance', 'forex-advance', 
                  'Master advanced Forex trading strategies, smart money concepts, risk management.',
                  'Master advanced Forex trading strategies, smart money concepts, risk management with practitioner-led video lessons.',
-                 219900, 219900, 219900, 'INR', 'PUBLISHED', true, ?, 'Forex Advance — Trade Learning Hub',
+                 219900, 1099900, 219900, 'INR', 'PUBLISHED', true, ?, 'Forex Advance — Trade Learning Hub',
                  'Master advanced Forex trading.', '/images/forex-advance.png')`,
         [categoryId]
       );
@@ -581,7 +597,7 @@ export async function initializeDatabase() {
          VALUES ('course-stock-basics', 'Stock Market Basics for Beginners', 'stock-market-basics-for-beginners', 
                  'Learn the fundamentals of the stock market, trading basics, chart analysis.',
                  'Learn the fundamentals of the stock market, trading basics, chart analysis with practitioner-led video lessons.',
-                 199900, 199900, 199900, 'INR', 'PUBLISHED', true, ?, 'Stock Market Basics for Beginners — Trade Learning Hub',
+                 199900, 999900, 199900, 'INR', 'PUBLISHED', true, ?, 'Stock Market Basics for Beginners — Trade Learning Hub',
                  'Learn the stock market basics.', '/images/stock-basics.png')`,
         [categoryId]
       );

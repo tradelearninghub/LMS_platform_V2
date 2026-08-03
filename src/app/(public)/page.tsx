@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { query } from "@/lib/db";
 import { getSiteSettings } from "@/lib/settings";
+import { formatCurrency } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -9,8 +10,8 @@ const DEFAULT_COURSES = [
     id: "forex-basis",
     title: "Forex Basis",
     slug: "forex-basis",
-    price: "₹1999",
-    discount: "80% OFF",
+    sellingPriceCents: 199900,
+    mrpCents: 999900,
     image: "/images/forex-basis.png",
     description: "Learn the fundamentals of Forex trading, chart analysis, and risk management with...",
     curriculum: [
@@ -23,8 +24,8 @@ const DEFAULT_COURSES = [
     id: "forex-advance",
     title: "Forex Advance",
     slug: "forex-advance",
-    price: "₹2199",
-    discount: "80% OFF",
+    sellingPriceCents: 219900,
+    mrpCents: 1099900,
     image: "/images/forex-advance.png",
     description: "Master advanced Forex trading strategies, smart money concepts, risk management...",
     curriculum: [
@@ -37,8 +38,8 @@ const DEFAULT_COURSES = [
     id: "stock-market-basics-for-beginners",
     title: "Stock Market Basics for Beginners",
     slug: "stock-market-basics-for-beginners",
-    price: "₹1999",
-    discount: "80% OFF",
+    sellingPriceCents: 199900,
+    mrpCents: 999900,
     image: "/images/stock-basics.png",
     description: "Learn the fundamentals of the stock market, trading basics, chart analysis, a...",
     curriculum: [
@@ -142,27 +143,44 @@ export default async function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {DEFAULT_COURSES.map((course) => (
-              <div key={course.id} className="bg-white rounded-3xl border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.02)] overflow-hidden flex flex-col hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-all duration-300">
-                {/* Course cover and discount badges */}
-                <div className="relative aspect-[1.3] bg-slate-50 overflow-hidden">
-                  <img src={course.image} alt={course.title} className="w-full h-full object-cover" />
-                  <div className="absolute top-4 right-4 flex items-center gap-2">
-                    <span className="bg-[#10b981] text-white text-[9px] font-extrabold px-2.5 py-1 rounded-md uppercase tracking-wider shadow-sm">
-                      {course.discount}
-                    </span>
-                    <span className="bg-[#3b82f6] text-white text-[9px] font-extrabold px-2.5 py-1 rounded-md shadow-sm">
-                      {course.price}
-                    </span>
-                  </div>
-                </div>
+            {DEFAULT_COURSES.map((course) => {
+              const dbCourse = dbCourses.find((c: any) => c.slug === course.slug);
+              const sellingPrice = dbCourse?.selling_price_cents || dbCourse?.price_cents || course.sellingPriceCents;
+              const mrp = dbCourse?.mrp_cents || course.mrpCents;
+              const hasDiscount = mrp > sellingPrice;
+              const discountPercent = hasDiscount ? Math.round(((mrp - sellingPrice) / mrp) * 100) : 0;
+              const currency = dbCourse?.currency || "INR";
 
-                {/* Course core details */}
-                <div className="p-7 flex-1 flex flex-col">
-                  <h3 className="text-lg font-bold text-[#0f172a] mb-2 leading-snug">{course.title}</h3>
-                  <p className="text-[11px] text-slate-400 mb-6 leading-relaxed line-clamp-2">
-                    {course.description}
-                  </p>
+              return (
+                <div key={course.id} className="bg-white rounded-3xl border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.02)] overflow-hidden flex flex-col hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-all duration-300">
+                  {/* Course cover and discount badges */}
+                  <div className="relative aspect-[1.3] bg-slate-50 overflow-hidden">
+                    <img src={course.image} alt={course.title} className="w-full h-full object-cover" />
+                    <div className="absolute top-4 right-4 flex items-center gap-2">
+                      {hasDiscount && (
+                        <span className="bg-[#10b981] text-white text-[9px] font-extrabold px-2.5 py-1 rounded-md uppercase tracking-wider shadow-sm">
+                          {discountPercent}% OFF
+                        </span>
+                      )}
+                      <span className="bg-[#3b82f6] text-white text-[9px] font-extrabold px-2.5 py-1 rounded-md shadow-sm">
+                        {formatCurrency(sellingPrice, currency)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Course core details */}
+                  <div className="p-7 flex-1 flex flex-col">
+                    <div className="flex items-baseline justify-between gap-2 mb-2">
+                      <h3 className="text-lg font-bold text-[#0f172a] leading-snug">{course.title}</h3>
+                      {hasDiscount && (
+                        <span className="text-xs text-slate-400 line-through shrink-0 font-medium">
+                          {formatCurrency(mrp, currency)}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-slate-400 mb-6 leading-relaxed line-clamp-2">
+                      {course.description}
+                    </p>
 
                   <div className="mb-8">
                     <h4 className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest mb-4">
@@ -191,7 +209,8 @@ export default async function HomePage() {
                   </div>
                 </div>
               </div>
-            ))}
+            );
+          })}
           </div>
         </div>
       </section>

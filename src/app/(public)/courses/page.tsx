@@ -41,6 +41,7 @@ export default async function CoursesIndexPage() {
             const sellingPrice = course.selling_price_cents || course.price_cents || 0;
             const mrp = course.mrp_cents || course.price_cents || 0;
             const hasDiscount = mrp > sellingPrice;
+            const discountPercent = hasDiscount ? Math.round(((mrp - sellingPrice) / mrp) * 100) : 0;
 
             return (
               <Link
@@ -52,6 +53,11 @@ export default async function CoursesIndexPage() {
                   {course.is_featured === 1 && (
                     <span className="absolute top-3 left-3 rounded-full bg-primary px-2.5 py-0.5 text-[11px] font-semibold text-primary-foreground uppercase tracking-wide">
                       Featured
+                    </span>
+                  )}
+                  {hasDiscount && (
+                    <span className="absolute top-3 right-3 rounded-md bg-emerald-600 px-2.5 py-0.5 text-[11px] font-extrabold text-white uppercase tracking-wider shadow-sm">
+                      {discountPercent}% OFF
                     </span>
                   )}
                 </div>

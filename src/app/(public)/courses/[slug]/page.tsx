@@ -107,12 +107,7 @@ export default async function CourseDetailPage({ params }: Props) {
             <span>/</span>
             {course.category_name && (
               <>
-                <Link
-                  href={`/courses?category=${course.category_slug}`}
-                  className="hover:text-foreground"
-                >
-                  {course.category_name}
-                </Link>
+                <span className="text-muted-foreground">{course.category_name}</span>
                 <span>/</span>
               </>
             )}
@@ -249,16 +244,22 @@ export default async function CourseDetailPage({ params }: Props) {
                 const sellingPrice = course.selling_price_cents || course.price_cents || 0;
                 const mrp = course.mrp_cents || course.price_cents || 0;
                 const hasDiscount = mrp > sellingPrice;
+                const discountPercent = hasDiscount ? Math.round(((mrp - sellingPrice) / mrp) * 100) : 0;
 
                 return (
                   <div>
-                    <div className="flex items-center justify-center gap-3">
+                    <div className="flex items-center justify-center gap-3 flex-wrap">
                       <span className="text-3xl font-bold">
                         {sellingPrice === 0 ? "Free" : formatCurrency(sellingPrice, course.currency)}
                       </span>
                       {hasDiscount && (
                         <span className="text-lg text-muted-foreground line-through">
                           {formatCurrency(mrp, course.currency)}
+                        </span>
+                      )}
+                      {hasDiscount && (
+                        <span className="rounded-md bg-emerald-600 px-2.5 py-0.5 text-xs font-extrabold text-white uppercase tracking-wider shadow-sm">
+                          {discountPercent}% OFF
                         </span>
                       )}
                     </div>

@@ -24,9 +24,6 @@ export default async function PublicLayout({ children }: { children: React.React
             <Link href="/courses" className="hover:text-slate-900 transition-colors">
               Courses
             </Link>
-            <Link href="/research" className="hover:text-slate-900 transition-colors">
-              Research
-            </Link>
             {isLoggedIn ? (
               <>
                 <Link
@@ -78,7 +75,6 @@ export default async function PublicLayout({ children }: { children: React.React
               <h4 className="text-xs font-bold text-slate-900 uppercase tracking-widest">Platform</h4>
               <ul className="space-y-2 text-sm text-slate-500">
                 <li><Link href="/courses" className="hover:text-slate-900 transition-colors">Courses</Link></li>
-                 <li><Link href="/research" className="hover:text-slate-900 transition-colors">Research</Link></li>
                 <li><Link href="/contact" className="hover:text-slate-900 transition-colors">Get in Touch</Link></li>
                 <li><Link href={isLoggedIn ? (isAdmin ? "/admin" : "/dashboard") : "/login"} className="hover:text-slate-900 transition-colors">Sign In</Link></li>
               </ul>
@@ -94,20 +90,6 @@ export default async function PublicLayout({ children }: { children: React.React
           </div>
           <div className="pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-slate-400">
             <p>&copy; {new Date().getFullYear()} {site.site_name || site.siteName || "Trade Learning Hub"}. All rights reserved.</p>
-            <div className="flex gap-4">
-              <a href="#" className="text-slate-400 hover:text-slate-600 transition-colors" aria-label="Twitter">
-                <Twitter className="w-4.5 h-4.5" />
-              </a>
-              <a href="#" className="text-slate-400 hover:text-slate-600 transition-colors" aria-label="Instagram">
-                <Instagram className="w-4.5 h-4.5" />
-              </a>
-              <a href="#" className="text-slate-400 hover:text-slate-600 transition-colors" aria-label="YouTube">
-                <Youtube className="w-4.5 h-4.5" />
-              </a>
-              <a href="#" className="text-slate-400 hover:text-slate-600 transition-colors" aria-label="Telegram">
-                <Send className="w-4.5 h-4.5" />
-              </a>
-            </div>
           </div>
         </div>
       </footer>
