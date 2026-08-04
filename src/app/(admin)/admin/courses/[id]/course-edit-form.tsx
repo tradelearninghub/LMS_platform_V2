@@ -5,6 +5,7 @@ import {
   updateCourseAction,
   createModuleAction,
   createLessonAction,
+  updateLessonAction,
   deleteModuleAction,
   deleteLessonAction,
   deleteCourseAction,
@@ -66,6 +67,12 @@ export function CourseEditForm({
   const [selectedContentType, setSelectedContentType] = useState<Record<string, "URL" | "PDF">>({});
   const [uploadedPdfKeys, setUploadedPdfKeys] = useState<Record<string, string>>({});
   const [uploadingPdf, setUploadingPdf] = useState<Record<string, boolean>>({});
+
+  // Lesson editing state
+  const [editingLessonId, setEditingLessonId] = useState<string | null>(null);
+  const [editContentType, setEditContentType] = useState<Record<string, "URL" | "PDF">>({});
+  const [editPdfKeys, setEditPdfKeys] = useState<Record<string, string>>({});
+  const [uploadingEditPdf, setUploadingEditPdf] = useState<Record<string, boolean>>({});
 
   const handlePdfUpload = async (moduleId: string, file: File) => {
     setUploadingPdf((prev) => ({ ...prev, [moduleId]: true }));
@@ -257,39 +264,189 @@ export function CourseEditForm({
                 </button>
               </div>
 
-              {mod.lessons.map((lesson) => (
-                <div
-                  key={lesson.id}
-                  className="flex items-center justify-between px-5 py-3 border-b last:border-b-0 text-sm"
-                >
-                  <div className="flex items-center gap-3">
-                    <span>{lesson.title}</span>
-                    <span className="rounded bg-muted px-2 py-0.5 text-[10px] font-mono font-medium uppercase">
-                      {lesson.contentType || "URL"}
-                    </span>
-                    {lesson.isPreview && (
-                      <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-medium uppercase">
-                        Preview
-                      </span>
+              {mod.lessons.map((lesson) => {
+                const isEditing = editingLessonId === lesson.id;
+                const currentEditType = editContentType[lesson.id] || (lesson.contentType === "PDF" ? "PDF" : "URL");
+                const currentEditPdfKey = editPdfKeys[lesson.id] ?? (lesson.pdfFileKey || "");
+
+                return (
+                  <div key={lesson.id} className="border-b last:border-b-0">
+                    <div className="flex items-center justify-between px-5 py-3 text-sm hover:bg-muted/30">
+                      <div className="flex items-center gap-3">
+                        <span className="font-medium">{lesson.title}</span>
+                        <span className="rounded bg-muted px-2 py-0.5 text-[10px] font-mono font-medium uppercase">
+                          {lesson.contentType || "URL"}
+                        </span>
+                        {lesson.isPreview && (
+                          <span className="rounded-full bg-accent px-2 py-0.5 text-[10px] font-medium uppercase">
+                            Preview
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-muted-foreground">
+                          {Math.floor(lesson.durationSeconds / 60)}m
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setEditingLessonId(isEditing ? null : lesson.id)}
+                          className="text-xs text-primary hover:underline font-medium"
+                        >
+                          {isEditing ? "Close" : "Edit"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (confirm("Delete this lesson?")) {
+                              startTransition(() => { deleteLessonAction(lesson.id); });
+                            }
+                          }}
+                          className="text-xs text-destructive hover:underline"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+
+                    {isEditing && (
+                      <form
+                        action={async (formData) => {
+                          startTransition(async () => {
+                            await updateLessonAction(null, formData);
+                            setEditingLessonId(null);
+                            router.refresh();
+                          });
+                        }}
+                        className="px-5 py-4 space-y-3 bg-muted/20 border-t"
+                      >
+                        <input type="hidden" name="id" value={lesson.id} />
+
+                        <div className="flex items-center gap-4 text-xs font-medium border-b pb-2">
+                          <span>Content Type:</span>
+                          <label className="flex items-center gap-1.5 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="contentType"
+                              value="URL"
+                              checked={currentEditType === "URL"}
+                              onChange={() => setEditContentType((prev) => ({ ...prev, [lesson.id]: "URL" }))}
+                            />
+                            <span>URL (Video Link)</span>
+                          </label>
+                          <label className="flex items-center gap-1.5 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="contentType"
+                              value="PDF"
+                              checked={currentEditType === "PDF"}
+                              onChange={() => setEditContentType((prev) => ({ ...prev, [lesson.id]: "PDF" }))}
+                            />
+                            <span>Upload PDF Document</span>
+                          </label>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <label className="block">
+                            <span className="text-xs font-medium text-muted-foreground">Lesson Title *</span>
+                            <input
+                              name="title"
+                              defaultValue={lesson.title}
+                              required
+                              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm"
+                            />
+                          </label>
+
+                          {currentEditType === "URL" ? (
+                            <label className="block">
+                              <span className="text-xs font-medium text-muted-foreground">Video URL</span>
+                              <input
+                                name="videoUrl"
+                                defaultValue={lesson.videoUrl || ""}
+                                placeholder="https://drive.google.com/..."
+                                className="mt-1 w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm"
+                              />
+                            </label>
+                          ) : (
+                            <div className="block">
+                              <span className="text-xs font-medium text-muted-foreground">PDF File</span>
+                              <input type="hidden" name="pdfFileKey" value={currentEditPdfKey} />
+                              <input
+                                type="file"
+                                accept="application/pdf"
+                                onChange={async (e) => {
+                                  if (e.target.files?.[0]) {
+                                    setUploadingEditPdf((prev) => ({ ...prev, [lesson.id]: true }));
+                                    const fd = new FormData();
+                                    fd.append("file", e.target.files[0]);
+                                    try {
+                                      const res = await fetch("/api/upload-pdf", { method: "POST", body: fd });
+                                      const data = await res.json();
+                                      if (data.fileKey) {
+                                        setEditPdfKeys((prev) => ({ ...prev, [lesson.id]: data.fileKey }));
+                                      } else {
+                                        alert(data.error || "Upload failed");
+                                      }
+                                    } catch {
+                                      alert("Upload failed");
+                                    } finally {
+                                      setUploadingEditPdf((prev) => ({ ...prev, [lesson.id]: false }));
+                                    }
+                                  }
+                                }}
+                                className="mt-1 w-full text-xs file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:bg-primary file:text-primary-foreground"
+                              />
+                              {uploadingEditPdf[lesson.id] && <p className="text-[11px] text-muted-foreground mt-1">Uploading PDF...</p>}
+                              {currentEditPdfKey && <p className="text-[11px] text-green-600 mt-1">✓ PDF attached ({currentEditPdfKey.split('/').pop()})</p>}
+                            </div>
+                          )}
+
+                          <label className="block">
+                            <span className="text-xs font-medium text-muted-foreground">Duration (seconds)</span>
+                            <input
+                              name="durationSeconds"
+                              type="number"
+                              defaultValue={lesson.durationSeconds}
+                              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm"
+                            />
+                          </label>
+
+                          <label className="flex items-center gap-2 self-center pt-4">
+                            <input name="isPreview" type="checkbox" defaultChecked={lesson.isPreview} className="rounded" />
+                            <span className="text-sm font-medium">Preview lesson</span>
+                          </label>
+                        </div>
+
+                        <label className="block">
+                          <span className="text-xs font-medium text-muted-foreground">Description</span>
+                          <textarea
+                            name="description"
+                            defaultValue={lesson.description || ""}
+                            rows={2}
+                            className="mt-1 w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm resize-none"
+                          />
+                        </label>
+
+                        <div className="flex gap-2 justify-end pt-1">
+                          <button
+                            type="button"
+                            onClick={() => setEditingLessonId(null)}
+                            className="rounded-md border px-3 py-1 text-xs hover:bg-accent"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="submit"
+                            disabled={uploadingEditPdf[lesson.id]}
+                            className="rounded-md bg-primary px-4 py-1 text-primary-foreground text-xs font-medium hover:opacity-90 disabled:opacity-50"
+                          >
+                            Update Lesson
+                          </button>
+                        </div>
+                      </form>
                     )}
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs text-muted-foreground">
-                      {Math.floor(lesson.durationSeconds / 60)}m
-                    </span>
-                    <button
-                      onClick={() => {
-                        if (confirm("Delete this lesson?")) {
-                          startTransition(() => { deleteLessonAction(lesson.id); });
-                        }
-                      }}
-                      className="text-xs text-destructive hover:underline"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
 
               {/* Add lesson form */}
               <details className="border-t">

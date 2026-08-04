@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { signOut } from "next-auth/react";
 
 export function MobileNav({
   isLoggedIn,
@@ -40,6 +41,13 @@ export function MobileNav({
             >
               Courses
             </Link>
+            <Link
+              href="/research"
+              onClick={() => setOpen(false)}
+              className="rounded-md px-3 py-2 hover:bg-accent transition-colors"
+            >
+              Research
+            </Link>
             {isLoggedIn ? (
               <>
                 <Link
@@ -49,10 +57,19 @@ export function MobileNav({
                 >
                   {isAdmin ? "Admin" : "Dashboard"}
                 </Link>
-                <div className="border-t mt-2 pt-2">
-                  <span className="px-3 py-2 text-muted-foreground text-xs">
+                <div className="border-t mt-2 pt-2 flex flex-col gap-2">
+                  <span className="px-3 text-muted-foreground text-xs">
                     Signed in as {userName || "User"}
                   </span>
+                  <button
+                    onClick={() => {
+                      setOpen(false);
+                      signOut({ callbackUrl: "/" });
+                    }}
+                    className="text-left rounded-md px-3 py-2 text-destructive hover:bg-destructive/10 transition-colors font-medium text-xs"
+                  >
+                    Sign Out
+                  </button>
                 </div>
               </>
             ) : (
