@@ -183,7 +183,7 @@ export default async function LessonPage({ params }: Props) {
         <main className="flex-1 overflow-y-auto">
           {/* PDF Viewer or Video Player */}
           {isPdfLesson ? (
-            <div className="p-4 max-w-4xl mx-auto">
+            <div className="p-2 sm:p-4 max-w-5xl mx-auto w-full">
               <PDFViewer pdfUrl={signedPdfUrl} title={lesson.title} />
             </div>
           ) : embedUrl ? (

@@ -63,7 +63,7 @@ export function PDFViewer({ pdfUrl, title }: PDFViewerProps) {
       {/* Embedded PDF Viewer */}
       <div
         ref={containerRef}
-        className="flex-1 min-h-[600px] h-[75vh] overflow-y-auto relative bg-neutral-900 select-none"
+        className="flex-1 min-h-[500px] md:min-h-[750px] h-[75vh] w-full overflow-y-auto relative bg-slate-100 select-none flex flex-col"
         style={{
           WebkitUserSelect: "none",
           MozUserSelect: "none",
@@ -71,11 +71,30 @@ export function PDFViewer({ pdfUrl, title }: PDFViewerProps) {
           userSelect: "none",
         }}
       >
-        <iframe
-          src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=1`}
-          className="w-full h-full border-0"
-          title={title}
-        />
+        <object
+          data={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`}
+          type="application/pdf"
+          className="w-full h-full min-h-[500px] md:min-h-[750px] border-0 flex-1"
+        >
+          <iframe
+            src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`}
+            className="w-full h-full min-h-[500px] md:min-h-[750px] border-0 flex-1"
+            title={title}
+          />
+        </object>
+      </div>
+
+      {/* Mobile helper notice */}
+      <div className="md:hidden px-4 py-2 bg-slate-50 border-t flex items-center justify-between text-xs text-slate-600">
+        <span>Can't scroll PDF?</span>
+        <a
+          href={pdfUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-primary font-semibold hover:underline"
+        >
+          Open Document View ↗
+        </a>
       </div>
     </div>
   );

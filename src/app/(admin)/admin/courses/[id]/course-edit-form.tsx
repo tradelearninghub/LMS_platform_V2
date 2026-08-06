@@ -73,6 +73,7 @@ export function CourseEditForm({
   const [editContentType, setEditContentType] = useState<Record<string, "URL" | "PDF">>({});
   const [editPdfKeys, setEditPdfKeys] = useState<Record<string, string>>({});
   const [uploadingEditPdf, setUploadingEditPdf] = useState<Record<string, boolean>>({});
+  const [showReplacePdf, setShowReplacePdf] = useState<Record<string, boolean>>({});
 
   const handlePdfUpload = async (moduleId: string, file: File) => {
     setUploadingPdf((prev) => ({ ...prev, [moduleId]: true }));
@@ -368,35 +369,66 @@ export function CourseEditForm({
                             </label>
                           ) : (
                             <div className="block">
-                              <span className="text-xs font-medium text-muted-foreground">PDF File</span>
+                              <span className="text-xs font-medium text-muted-foreground mb-1 block">PDF Document</span>
                               <input type="hidden" name="pdfFileKey" value={currentEditPdfKey} />
-                              <input
-                                type="file"
-                                accept="application/pdf"
-                                onChange={async (e) => {
-                                  if (e.target.files?.[0]) {
-                                    setUploadingEditPdf((prev) => ({ ...prev, [lesson.id]: true }));
-                                    const fd = new FormData();
-                                    fd.append("file", e.target.files[0]);
-                                    try {
-                                      const res = await fetch("/api/upload-pdf", { method: "POST", body: fd });
-                                      const data = await res.json();
-                                      if (data.fileKey) {
-                                        setEditPdfKeys((prev) => ({ ...prev, [lesson.id]: data.fileKey }));
-                                      } else {
-                                        alert(data.error || "Upload failed");
+
+                              {currentEditPdfKey && !showReplacePdf[lesson.id] && !editPdfKeys[lesson.id] ? (
+                                <div className="mt-1 flex items-center justify-between gap-2 rounded-md border border-emerald-200 bg-emerald-50/50 px-3 py-1.5 text-xs">
+                                  <span className="font-medium text-emerald-800 truncate">
+                                    ✓ Attached: {currentEditPdfKey.split("/").pop()}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => setShowReplacePdf((prev) => ({ ...prev, [lesson.id]: true }))}
+                                    className="shrink-0 font-semibold text-primary hover:underline text-[11px]"
+                                  >
+                                    Replace PDF
+                                  </button>
+                                </div>
+                              ) : (
+                                <div>
+                                  <input
+                                    type="file"
+                                    accept="application/pdf"
+                                    onChange={async (e) => {
+                                      if (e.target.files?.[0]) {
+                                        setUploadingEditPdf((prev) => ({ ...prev, [lesson.id]: true }));
+                                        const fd = new FormData();
+                                        fd.append("file", e.target.files[0]);
+                                        try {
+                                          const res = await fetch("/api/upload-pdf", { method: "POST", body: fd });
+                                          const data = await res.json();
+                                          if (data.fileKey) {
+                                            setEditPdfKeys((prev) => ({ ...prev, [lesson.id]: data.fileKey }));
+                                          } else {
+                                            alert(data.error || "Upload failed");
+                                          }
+                                        } catch {
+                                          alert("Upload failed");
+                                        } finally {
+                                          setUploadingEditPdf((prev) => ({ ...prev, [lesson.id]: false }));
+                                        }
                                       }
-                                    } catch {
-                                      alert("Upload failed");
-                                    } finally {
-                                      setUploadingEditPdf((prev) => ({ ...prev, [lesson.id]: false }));
-                                    }
-                                  }
-                                }}
-                                className="mt-1 w-full text-xs file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:bg-primary file:text-primary-foreground"
-                              />
-                              {uploadingEditPdf[lesson.id] && <p className="text-[11px] text-muted-foreground mt-1">Uploading PDF...</p>}
-                              {currentEditPdfKey && <p className="text-[11px] text-green-600 mt-1">✓ PDF attached ({currentEditPdfKey.split('/').pop()})</p>}
+                                    }}
+                                    className="mt-1 w-full text-xs file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:bg-primary file:text-primary-foreground cursor-pointer"
+                                  />
+                                  {uploadingEditPdf[lesson.id] && <p className="text-[11px] text-muted-foreground mt-1">Uploading new PDF...</p>}
+                                  {editPdfKeys[lesson.id] && (
+                                    <p className="text-[11px] text-emerald-600 mt-1 font-medium">
+                                      ✓ New PDF selected: {editPdfKeys[lesson.id].split("/").pop()}
+                                    </p>
+                                  )}
+                                  {currentEditPdfKey && showReplacePdf[lesson.id] && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setShowReplacePdf((prev) => ({ ...prev, [lesson.id]: false }))}
+                                      className="text-[11px] text-muted-foreground hover:text-foreground underline mt-1 block"
+                                    >
+                                      Keep existing PDF
+                                    </button>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           )}
 

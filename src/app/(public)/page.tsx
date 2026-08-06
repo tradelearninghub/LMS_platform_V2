@@ -55,7 +55,11 @@ export default async function HomePage() {
   
   // Query all published courses from database to resolve links dynamically if they exist
   const dbCourses = await query(
-    "SELECT * FROM courses WHERE status = 'PUBLISHED'"
+    `SELECT c.*,
+            (SELECT COUNT(*) FROM lessons l JOIN modules m ON l.module_id = m.id WHERE m.course_id = c.id AND (l.content_type = 'URL' OR l.content_type IS NULL OR l.content_type = '')) AS url_lesson_count,
+            (SELECT COUNT(*) FROM lessons l JOIN modules m ON l.module_id = m.id WHERE m.course_id = c.id AND l.content_type = 'PDF') AS pdf_lesson_count
+     FROM courses c
+     WHERE c.status = 'PUBLISHED'`
   ).catch(() => []);
 
   const findCourseUrl = (slug: string) => {
@@ -84,25 +88,19 @@ export default async function HomePage() {
               <div className="pt-4 flex flex-wrap gap-4">
                 <Link
                   href="/courses"
-                  className="rounded-full bg-[#0f172a] hover:bg-slate-800 px-8 py-3 text-xs font-semibold text-white transition-colors shadow-sm"
+                  className="bg-[#3b82f6] hover:bg-[#2563eb] text-white px-7 py-3 rounded-full text-xs font-bold shadow-md transition-all"
                 >
                   Explore Courses
-                </Link>
-                <Link
-                  href="/login"
-                  className="rounded-full bg-[#f8fafc] border border-slate-200 hover:bg-slate-50 px-8 py-3 text-xs font-semibold text-slate-700 transition-all"
-                >
-                  Sign In
                 </Link>
               </div>
             </div>
 
-            {/* Right graphic column */}
-            <div className="lg:col-span-5 flex justify-center lg:justify-end">
-              <div className="w-full max-w-[440px] aspect-[1.1] rounded-[2rem] overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-slate-50 bg-[#07090e]">
+            {/* Right cover image column */}
+            <div className="lg:col-span-5 relative">
+              <div className="aspect-square rounded-3xl overflow-hidden bg-slate-50 border border-slate-100 shadow-xl">
                 <img
-                  src="/images/hero-chart.png"
-                  alt="Stock Market Trading Terminal Chart"
+                  src="/images/hero-trading.png"
+                  alt="Stock Market Trading Charts & Technical Analysis"
                   className="w-full h-full object-cover"
                 />
               </div>
@@ -150,6 +148,8 @@ export default async function HomePage() {
               const hasDiscount = mrp > sellingPrice;
               const discountPercent = hasDiscount ? Math.round(((mrp - sellingPrice) / mrp) * 100) : 0;
               const currency = dbCourse?.currency || "INR";
+              const hasUrlLessons = (dbCourse?.url_lesson_count || 1) > 0;
+              const hasPdfLessons = (dbCourse?.pdf_lesson_count || 0) > 0;
 
               return (
                 <div key={course.id} className="bg-white rounded-3xl border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.02)] overflow-hidden flex flex-col hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-all duration-300">
@@ -165,6 +165,18 @@ export default async function HomePage() {
                       <span className="bg-[#3b82f6] text-white text-[9px] font-extrabold px-2.5 py-1 rounded-md shadow-sm">
                         {formatCurrency(sellingPrice, currency)}
                       </span>
+                    </div>
+                    <div className="absolute bottom-3 left-4 flex items-center gap-1.5">
+                      {hasUrlLessons && (
+                        <span className="bg-slate-900/80 backdrop-blur text-white text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">
+                          Video
+                        </span>
+                      )}
+                      {hasPdfLessons && (
+                        <span className="bg-amber-600/90 backdrop-blur text-white text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">
+                          PDF
+                        </span>
+                      )}
                     </div>
                   </div>
 

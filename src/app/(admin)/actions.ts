@@ -654,7 +654,28 @@ export async function exportOrdersAction(startDate?: string, endDate?: string) {
 
   sql += " ORDER BY o.created_at DESC";
   const rows = await query(sql, params);
-  return rows;
+
+  return rows.map((r: any) => {
+    const baseAmount = ((r.amount_cents || 0) / 100).toFixed(2);
+    const discountAmount = ((r.discount_cents || 0) / 100).toFixed(2);
+    const finalAmount = ((r.final_amount_cents || 0) / 100).toFixed(2);
+
+    return {
+      Order_Number: r.order_number,
+      Student_Name: r.student_name,
+      Student_Email: r.student_email,
+      Course_Title: r.course_title,
+      Base_Amount: `₹${baseAmount}`,
+      Discount_Amount: `₹${discountAmount}`,
+      Final_Amount_Paid: `₹${finalAmount}`,
+      Applied_Coupon: r.applied_code || "",
+      Status: r.status,
+      Transaction_ID: r.transaction_id || "",
+      Payer_Name: r.payer_name || "",
+      Payer_Mobile: r.payer_mobile || "",
+      Created_At: r.created_at,
+    };
+  });
 }
 
 export async function exportEnrollmentsAction(startDate?: string, endDate?: string) {

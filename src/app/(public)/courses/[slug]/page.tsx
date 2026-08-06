@@ -59,7 +59,7 @@ export default async function CourseDetailPage({ params }: Props) {
   const modules: DBModule[] = [];
   for (const m of rawModules) {
     const lessons = await query(
-      "SELECT id, title, duration_seconds, is_preview FROM lessons WHERE module_id = ? ORDER BY sort_order ASC",
+      "SELECT id, title, duration_seconds, is_preview, content_type FROM lessons WHERE module_id = ? ORDER BY sort_order ASC",
       [m.id]
     ).catch(() => []);
     modules.push({
@@ -70,7 +70,8 @@ export default async function CourseDetailPage({ params }: Props) {
         id: l.id,
         title: l.title,
         duration_seconds: l.duration_seconds,
-        is_preview: !!l.is_preview
+        is_preview: !!l.is_preview,
+        content_type: l.content_type || "URL"
       }))
     });
   }
@@ -86,13 +87,22 @@ export default async function CourseDetailPage({ params }: Props) {
     isEnrolled = !!enrollment;
   }
 
-  const totalLessons = modules.reduce((sum, m) => sum + m.lessons.length, 0);
+  const allLessonsList = modules.flatMap(m => m.lessons);
+  const totalLessons = allLessonsList.length;
   const totalDuration = modules.reduce(
     (sum, m) => sum + m.lessons.reduce((s, l) => s + l.duration_seconds, 0),
     0
   );
   const durationHours = Math.floor(totalDuration / 3600);
   const durationMinutes = Math.ceil((totalDuration % 3600) / 60);
+
+  const hasUrlLessons = allLessonsList.some(l => (l as any).content_type !== "PDF");
+  const hasPdfLessons = allLessonsList.some(l => (l as any).content_type === "PDF");
+  const contentTypeLabel = hasUrlLessons && hasPdfLessons
+    ? "video & PDF lessons"
+    : hasPdfLessons
+    ? "PDF document lessons"
+    : "video lessons";
 
   return (
     <div className="container py-12">
@@ -305,7 +315,7 @@ export default async function CourseDetailPage({ params }: Props) {
                 <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
-                {totalLessons} video & PDF lessons
+                {allLessonsList.length} {contentTypeLabel}
               </li>
               <li className="flex items-center gap-2">
                 <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

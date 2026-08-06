@@ -48,11 +48,9 @@ export async function GET(
     return new NextResponse(fileBuffer, {
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": "inline", // render in browser, not download
-        "Cache-Control": "no-store, no-cache, must-revalidate",
+        "Content-Disposition": "inline; filename=lesson.pdf",
+        "Cache-Control": "private, no-cache, no-store, must-revalidate",
         "X-Content-Type-Options": "nosniff",
-        // Discourage downloading
-        "Content-Security-Policy": "default-src 'none'",
       },
     });
   } catch (err) {
