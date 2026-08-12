@@ -99,7 +99,7 @@ export default async function HomePage() {
             <div className="lg:col-span-5 relative">
               <div className="aspect-square rounded-3xl overflow-hidden bg-slate-50 border border-slate-100 shadow-xl">
                 <img
-                  src="/images/hero-trading.png"
+                  src="/images/hero-chart.png"
                   alt="Stock Market Trading Charts & Technical Analysis"
                   className="w-full h-full object-cover"
                 />
