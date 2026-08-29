@@ -155,7 +155,7 @@ export default async function HomePage() {
                 <div key={course.id} className="bg-white rounded-3xl border border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.02)] overflow-hidden flex flex-col hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] transition-all duration-300">
                   {/* Course cover and discount badges */}
                   <div className="relative aspect-[1.3] bg-slate-50 overflow-hidden">
-                    <img src={course.image} alt={course.title} className="w-full h-full object-cover" />
+                    <img src={dbCourse?.thumbnail_url || course.image} alt={course.title} className="w-full h-full object-cover" />
                     <div className="absolute top-4 right-4 flex items-center gap-2">
                       {hasDiscount && (
                         <span className="bg-[#10b981] text-white text-[9px] font-extrabold px-2.5 py-1 rounded-md uppercase tracking-wider shadow-sm">

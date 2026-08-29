@@ -38,6 +38,7 @@ type Course = {
   priceCents: number;
   mrpCents?: number;
   sellingPriceCents?: number;
+  manualEnrollmentCount?: number | null;
   currency: string;
   status: string;
   isFeatured: boolean;
@@ -173,7 +174,7 @@ export function CourseEditForm({
           </div>
 
           {/* V3 Dual Pricing */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <label className="block">
               <span className="text-sm font-medium">MRP (List Price ₹)</span>
               <input name="mrpCents" type="number" step="0.01" defaultValue={initialMrp} className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
@@ -181,6 +182,10 @@ export function CourseEditForm({
             <label className="block">
               <span className="text-sm font-medium">Selling Price (₹)</span>
               <input name="sellingPriceCents" type="number" step="0.01" defaultValue={initialSellingPrice} className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
+            </label>
+            <label className="block">
+              <span className="text-sm font-medium">Manual Enrolled Students</span>
+              <input name="manualEnrollmentCount" type="number" defaultValue={course.manualEnrollmentCount ?? ""} placeholder="e.g. 500" className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" />
             </label>
           </div>
 

@@ -36,13 +36,28 @@ export async function POST(req: NextRequest) {
     const randomHex = crypto.randomBytes(4).toString("hex");
     const filename = `upload-${Date.now()}-${randomHex}${ext}`;
 
-    // Save to public/uploads directory
+    // Save to upload directories (public/uploads and persistent location)
     const uploadsDir = path.join(process.cwd(), "public", "uploads");
     await fs.mkdir(uploadsDir, { recursive: true });
 
     const buffer = Buffer.from(await file.arrayBuffer());
     const filePath = path.join(uploadsDir, filename);
     await fs.writeFile(filePath, buffer);
+
+    // Also persist to data/uploads for persistent storage across deploys
+    try {
+      const dataUploadsDir = path.join(process.cwd(), "data", "uploads");
+      await fs.mkdir(dataUploadsDir, { recursive: true });
+      await fs.writeFile(path.join(dataUploadsDir, filename), buffer);
+
+      if (process.env.UPLOAD_DIR) {
+        const customUploadsDir = path.resolve(process.env.UPLOAD_DIR);
+        await fs.mkdir(customUploadsDir, { recursive: true });
+        await fs.writeFile(path.join(customUploadsDir, filename), buffer);
+      }
+    } catch (persistErr) {
+      console.warn("Could not copy to secondary upload dir:", persistErr);
+    }
 
     const url = `/uploads/${filename}`;
     return NextResponse.json({ url });

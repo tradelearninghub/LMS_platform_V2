@@ -179,18 +179,15 @@ export function PDFViewer({ pdfUrl, title }: PDFViewerProps) {
         )}
       </div>
 
-      {/* Mobile helper action */}
-      <div className="px-4 py-2.5 bg-slate-50 border-t flex items-center justify-between text-xs text-slate-600">
-        <span>Protected PDF Access</span>
-        <a
-          href={pdfUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-primary font-semibold hover:underline flex items-center gap-1"
-        >
-          <span>Open Full View</span>
-          <span>↗</span>
-        </a>
+      {/* Protected PDF footer indicator */}
+      <div className="px-4 py-2.5 bg-slate-50 border-t flex items-center justify-between text-xs text-slate-500">
+        <span className="flex items-center gap-1.5">
+          <svg className="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
+          Protected In-Page PDF Viewer
+        </span>
+        <span className="text-[11px] text-slate-400 font-mono">Secured</span>
       </div>
     </div>
   );

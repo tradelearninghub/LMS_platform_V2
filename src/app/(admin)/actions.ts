@@ -53,13 +53,15 @@ export async function updateCourseAction(_prev: unknown, formData: FormData) {
   const seoTitle = (formData.get("seoTitle") as string) || null;
   const seoDescription = (formData.get("seoDescription") as string) || null;
   const thumbnailUrl = (formData.get("thumbnailUrl") as string) || null;
+  const rawManualEnroll = formData.get("manualEnrollmentCount") as string;
+  const manualEnrollmentCount = rawManualEnroll !== "" && rawManualEnroll !== null && !isNaN(parseInt(rawManualEnroll, 10)) ? parseInt(rawManualEnroll, 10) : null;
 
   if (!id || !title) return { error: "Missing required fields" };
 
   await execute(
     `UPDATE courses 
      SET title = ?, short_description = ?, description = ?, price_cents = ?, mrp_cents = ?, selling_price_cents = ?,
-         category_id = ?, is_featured = ?, status = ?, seo_title = ?, seo_description = ?, thumbnail_url = ?
+         category_id = ?, is_featured = ?, status = ?, seo_title = ?, seo_description = ?, thumbnail_url = ?, manual_enrollment_count = ?
      WHERE id = ?`,
     [
       title,
@@ -74,12 +76,15 @@ export async function updateCourseAction(_prev: unknown, formData: FormData) {
       seoTitle,
       seoDescription,
       thumbnailUrl,
+      manualEnrollmentCount,
       id,
     ]
   );
 
   revalidatePath("/admin/courses");
   revalidatePath(`/admin/courses/${id}`);
+  revalidatePath("/courses");
+  revalidatePath("/");
   return { success: true };
 }
 
@@ -321,15 +326,73 @@ export async function updateSiteSettingsAction(_prev: unknown, formData: FormDat
   const tagline = (formData.get("tagline") as string) || null;
   const logoUrl = (formData.get("logoUrl") as string) || null;
   const contactEmail = (formData.get("contactEmail") as string) || null;
+  const primaryColor = (formData.get("primaryColor") as string) || null;
+  const accentColor = (formData.get("accentColor") as string) || null;
+  const contactPhone = (formData.get("contactPhone") as string) || null;
+  const address = (formData.get("address") as string) || null;
+  const seoTitle = (formData.get("seoTitle") as string) || null;
+  const seoDescription = (formData.get("seoDescription") as string) || null;
+  const seoKeywords = (formData.get("seoKeywords") as string) || null;
+  const ogImageUrl = (formData.get("ogImageUrl") as string) || null;
+  const footerText = (formData.get("footerText") as string) || null;
+  const termsUrl = (formData.get("termsUrl") as string) || null;
+  const privacyUrl = (formData.get("privacyUrl") as string) || null;
+  const refundUrl = (formData.get("refundUrl") as string) || null;
+  const facebookUrl = (formData.get("facebookUrl") as string) || null;
+  const twitterUrl = (formData.get("twitterUrl") as string) || null;
+  const youtubeUrl = (formData.get("youtubeUrl") as string) || null;
+  const instagramUrl = (formData.get("instagramUrl") as string) || null;
+  const linkedinUrl = (formData.get("linkedinUrl") as string) || null;
+  const whatsappNumber = (formData.get("whatsappNumber") as string) || null;
+  const googleAnalyticsId = (formData.get("googleAnalyticsId") as string) || null;
+  const metaPixelId = (formData.get("metaPixelId") as string) || null;
   const couponsEnabled = formData.get("couponsEnabled") === "on";
   const referralsEnabled = formData.get("referralsEnabled") === "on";
 
   await execute(
-    "UPDATE site_settings SET site_name = ?, tagline = ?, logo_url = ?, contact_email = ?, coupons_enabled = ?, referrals_enabled = ? WHERE id = 'default'",
-    [siteName, tagline, logoUrl, contactEmail, couponsEnabled, referralsEnabled]
+    `UPDATE site_settings 
+     SET site_name = ?, tagline = ?, logo_url = ?, contact_email = ?,
+         primary_color = ?, accent_color = ?, contact_phone = ?, address = ?,
+         seo_title = ?, seo_description = ?, seo_keywords = ?, og_image_url = ?,
+         footer_text = ?, terms_url = ?, privacy_url = ?, refund_url = ?,
+         facebook_url = ?, twitter_url = ?, youtube_url = ?, instagram_url = ?, linkedin_url = ?, whatsapp_number = ?,
+         google_analytics_id = ?, meta_pixel_id = ?,
+         coupons_enabled = ?, referrals_enabled = ? 
+     WHERE id = 'default'`,
+    [
+      siteName,
+      tagline,
+      logoUrl,
+      contactEmail,
+      primaryColor,
+      accentColor,
+      contactPhone,
+      address,
+      seoTitle,
+      seoDescription,
+      seoKeywords,
+      ogImageUrl,
+      footerText,
+      termsUrl,
+      privacyUrl,
+      refundUrl,
+      facebookUrl,
+      twitterUrl,
+      youtubeUrl,
+      instagramUrl,
+      linkedinUrl,
+      whatsappNumber,
+      googleAnalyticsId,
+      metaPixelId,
+      couponsEnabled,
+      referralsEnabled,
+    ]
   );
 
   revalidatePath("/admin/settings/site");
+  revalidatePath("/admin/seo");
+  revalidatePath("/");
+  revalidatePath("/courses");
   return { success: true };
 }
 

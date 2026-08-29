@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useActionState, Suspense } from "react";
 import { resetPasswordAction, type FormState } from "../actions";
+import { PasswordInput } from "@/components/ui/password-input";
 
 const initialState: FormState = {};
 
@@ -47,12 +48,11 @@ function ResetPasswordFormContent() {
 
           <label className="block">
             <span className="text-sm font-medium">New Password</span>
-            <input
+            <PasswordInput
               name="password"
-              type="password"
               required
               minLength={6}
-              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              className="mt-1"
               placeholder="••••••••"
             />
             {state.fieldErrors?.password && (
@@ -62,12 +62,11 @@ function ResetPasswordFormContent() {
 
           <label className="block">
             <span className="text-sm font-medium">Confirm Password</span>
-            <input
+            <PasswordInput
               name="confirmPassword"
-              type="password"
               required
               minLength={6}
-              className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              className="mt-1"
               placeholder="••••••••"
             />
             {state.fieldErrors?.confirmPassword && (

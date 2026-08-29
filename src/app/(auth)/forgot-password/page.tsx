@@ -51,12 +51,20 @@ export default function ForgotPasswordPage() {
         </button>
       </form>
 
-      <p className="text-sm text-muted-foreground text-center">
-        Remember your password?{" "}
-        <Link href="/login" className="text-primary hover:underline font-medium">
-          Sign In
-        </Link>
-      </p>
+      <div className="text-sm text-muted-foreground text-center space-y-1.5">
+        <p>
+          Remember your password?{" "}
+          <Link href="/login" className="text-primary hover:underline font-medium">
+            Sign In
+          </Link>
+        </p>
+        <p className="text-xs">
+          Forgot your registered email?{" "}
+          <Link href="/forgot-email" className="text-primary hover:underline font-medium">
+            Find email
+          </Link>
+        </p>
+      </div>
     </div>
   );
 }

@@ -77,10 +77,11 @@ c:\Users\aloks\Work\LMS\LMS_v2
 │   │   │           ├── student-actions.ts    # Student status server actions
 │   │   │           └── [id]/                 # Comprehensive student profile view (details, enrollments, orders)
 │   │   ├── (auth)/            # Authentication Route Group
-│   │   │   ├── actions.ts     # Auth server actions (Login, Register, OTP, Password Reset, Resend Email)
+│   │   │   ├── actions.ts     # Auth server actions (Login, Register, OTP, Password Reset, Resend Email, Lookup Email)
 │   │   │   ├── layout.tsx     # Auth views layout container
+│   │   │   ├── forgot-email/  # Registered email lookup (masked email output)
 │   │   │   ├── forgot-password/ # Password reset request page
-│   │   │   ├── login/         # Password-based login page
+│   │   │   ├── login/         # Password-based login page (with show/hide eye toggle)
 │   │   │   ├── login-otp/     # 6-digit OTP code request & verification login page
 │   │   │   ├── register/      # New student registration page
 │   │   │   ├── reset-password/# Password token update page
@@ -109,15 +110,20 @@ c:\Users\aloks\Work\LMS\LMS_v2
 │   │   │       └── [courseSlug]/
 │   │   │           ├── page.tsx           # Auto-redirects student to first lesson in course
 │   │   │           └── [lessonId]/        # Course player (Video iframe, sidebar checklist, notes, resources)
+│   │   ├── uploads/           # Runtime uploaded files route handler
+│   │   │   └── [...path]/route.ts # Serves uploaded images directly with cache headers
 │   │   ├── api/               # Next.js Route Handlers (REST endpoints)
 │   │   │   ├── auth/[...nextauth]/route.ts # NextAuth authentication endpoint
 │   │   │   ├── receipts/[orderId]/route.ts # Dynamic PDF receipt generator endpoint
-│   │   │   ├── upload/route.ts            # Image file upload API (max 5MB, saves to /public/uploads)
+│   │   │   ├── upload/route.ts            # Image file upload API (max 5MB, saves to /public/uploads & /data/uploads)
 │   │   │   └── upload-favicon/route.ts    # Admin favicon upload API (saves to /public/favicon.ico)
 │   │   ├── globals.css        # Tailwind CSS import, root variables, custom utility classes
 │   │   ├── layout.tsx         # Top-level HTML root layout wrapper
 │   │   ├── robots.ts          # Dynamic robots.txt metadata route handler
 │   │   └── sitemap.ts         # Dynamic sitemap.xml metadata route handler
+│   ├── components/
+│   │   └── ui/
+│   │       └── password-input.tsx # Reusable show/hide eye toggle input component
 │   ├── auth.config.ts         # Edge-compatible Auth.js middleware permissions configuration
 │   ├── auth.ts                # NextAuth instance setup with Credentials Provider & MySQL verification
 │   ├── middleware.ts          # Route protection middleware intercepting NextAuth sessions

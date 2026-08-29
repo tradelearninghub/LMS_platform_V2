@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useActionState, useState, useEffect } from "react";
-import { registerAction, type RegisterState } from "../actions";
+import { registerAction, resendVerificationAction, type RegisterState } from "../actions";
 import { ArrowLeft, Mail, X } from "lucide-react";
+import { PasswordInput } from "@/components/ui/password-input";
 
 const initialState: RegisterState = {};
 
@@ -85,12 +86,11 @@ export default function RegisterPage() {
 
         <label className="block">
           <span className="text-sm font-medium">Password</span>
-          <input
+          <PasswordInput
             name="password"
-            type="password"
             required
             minLength={6}
-            className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            className="mt-1"
             placeholder="••••••••"
           />
           {state.fieldErrors?.password && (
@@ -100,12 +100,11 @@ export default function RegisterPage() {
 
         <label className="block">
           <span className="text-sm font-medium">Confirm password</span>
-          <input
+          <PasswordInput
             name="confirmPassword"
-            type="password"
             required
             minLength={6}
-            className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            className="mt-1"
             placeholder="••••••••"
           />
           {state.fieldErrors?.confirmPassword && (

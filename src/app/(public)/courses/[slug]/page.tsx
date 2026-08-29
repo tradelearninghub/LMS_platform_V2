@@ -154,7 +154,11 @@ export default async function CourseDetailPage({ params }: Props) {
               <span className="text-muted-foreground">Total</span>
             </div>
             <div className="flex items-center gap-2">
-              <span className="font-semibold">{course.enrollment_count}</span>
+              <span className="font-semibold">
+                {course.manual_enrollment_count !== null && course.manual_enrollment_count !== undefined && course.manual_enrollment_count > 0
+                  ? `${course.manual_enrollment_count}+`
+                  : course.enrollment_count || 0}
+              </span>
               <span className="text-muted-foreground">Students</span>
             </div>
           </div>
@@ -248,7 +252,15 @@ export default async function CourseDetailPage({ params }: Props) {
         {/* Sidebar / CTA card */}
         <div className="lg:col-span-1">
           <div className="sticky top-24 rounded-xl border bg-card p-6 space-y-5">
-            <div className="aspect-video rounded-lg bg-gradient-to-br from-primary/20 to-accent/30" />
+            <div className="aspect-video rounded-lg bg-gradient-to-br from-primary/10 to-accent/20 overflow-hidden relative flex items-center justify-center">
+              {course.thumbnail_url ? (
+                <img
+                  src={course.thumbnail_url}
+                  alt={course.title}
+                  className="w-full h-full object-cover"
+                />
+              ) : null}
+            </div>
             <div className="text-center">
               {(() => {
                 const sellingPrice = course.selling_price_cents || course.price_cents || 0;

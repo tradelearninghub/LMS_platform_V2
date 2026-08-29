@@ -124,8 +124,8 @@ export default async function LessonPage({ params }: Props) {
       {/* Top bar */}
       <header className="h-14 border-b bg-white/80 backdrop-blur flex items-center px-4 gap-4 sticky top-0 z-40">
         <Link
-          href={`/learn/${courseSlug}`}
-          className="text-sm text-muted-foreground hover:text-foreground"
+          href={`/courses/${courseSlug}`}
+          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           ← Back to course
         </Link>

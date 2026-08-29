@@ -1,7 +1,7 @@
 "use server";
 
 import { signIn } from "@/auth";
-import { queryOne, execute } from "@/lib/db";
+import { queryOne, query, execute } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { redirect } from "next/navigation";
@@ -281,7 +281,7 @@ export async function sendOtpAction(
     [`otp:${parsed.data.email}`, otp, expires]
   );
 
-  await sendEventEmail("ACCOUNT_VERIFICATION", parsed.data.email, { link: otp });
+  await sendEventEmail("LOGIN_OTP", parsed.data.email, { otp, link: otp });
 
   return { success: "OTP sent. Check your email inbox." };
 }
@@ -317,4 +317,72 @@ export async function loginWithOtpAction(
   }
 
   redirect(user.role === "ADMIN" ? "/admin" : "/dashboard");
+}
+
+export interface ForgotEmailState {
+  error?: string;
+  success?: boolean;
+  maskedEmail?: string;
+}
+
+function maskEmail(email: string): string {
+  const [local, domain] = email.split("@");
+  if (!domain) return "***@***";
+
+  let maskedLocal = "";
+  if (local.length <= 2) {
+    maskedLocal = local[0] + "*";
+  } else {
+    maskedLocal = local[0] + "***" + local[local.length - 1];
+  }
+
+  const domainParts = domain.split(".");
+  const domainName = domainParts[0] || "";
+  const tld = domainParts.slice(1).join(".");
+
+  let maskedDomain = "";
+  if (domainName.length <= 2) {
+    maskedDomain = domainName[0] + "*";
+  } else {
+    maskedDomain = domainName[0] + "***";
+  }
+
+  return `${maskedLocal}@${maskedDomain}${tld ? "." + tld : ""}`;
+}
+
+export async function lookupEmailAction(
+  _prev: ForgotEmailState,
+  formData: FormData
+): Promise<ForgotEmailState> {
+  const name = (formData.get("name") as string || "").trim();
+  const mobile = (formData.get("mobile") as string || "").trim();
+
+  if (!name || !mobile) {
+    return { error: "Please enter both your registered name and mobile number." };
+  }
+
+  const cleanMobile = mobile.replace(/[^0-9]/g, "");
+  if (cleanMobile.length < 5) {
+    return { error: "Please enter a valid mobile number." };
+  }
+
+  const candidates = await query(
+    "SELECT name, email, mobile FROM users WHERE LOWER(TRIM(name)) = LOWER(?)",
+    [name]
+  );
+
+  const matched = (candidates as any[]).find((u) => {
+    if (!u.mobile) return false;
+    const userCleanMobile = u.mobile.replace(/[^0-9]/g, "");
+    return userCleanMobile.endsWith(cleanMobile) || cleanMobile.endsWith(userCleanMobile);
+  });
+
+  if (!matched || !matched.email) {
+    return { error: "No account found matching the provided name and mobile number." };
+  }
+
+  return {
+    success: true,
+    maskedEmail: maskEmail(matched.email),
+  };
 }

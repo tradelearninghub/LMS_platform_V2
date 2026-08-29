@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useActionState, useState, useEffect } from "react";
 import { loginAction, resendVerificationAction, type LoginState } from "../actions";
 import { ArrowLeft, Mail, X } from "lucide-react";
+import { PasswordInput } from "@/components/ui/password-input";
 
 const initialState: LoginState = {};
 
@@ -51,7 +52,12 @@ export default function LoginPage() {
 
       <form action={formAction} className="mt-6 space-y-4">
         <label className="block">
-          <span className="text-sm font-medium">Email</span>
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">Email</span>
+            <Link href="/forgot-email" className="text-xs text-primary hover:underline">
+              Forgot email?
+            </Link>
+          </div>
           <input
             name="email"
             type="email"
@@ -66,12 +72,16 @@ export default function LoginPage() {
           )}
         </label>
         <label className="block">
-          <span className="text-sm font-medium">Password</span>
-          <input
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">Password</span>
+            <Link href="/forgot-password" className="text-xs text-primary hover:underline">
+              Forgot password?
+            </Link>
+          </div>
+          <PasswordInput
             name="password"
-            type="password"
             required
-            className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            className="mt-1"
             placeholder="••••••••"
           />
           {state.fieldErrors?.password && (
@@ -86,12 +96,18 @@ export default function LoginPage() {
           {isPending ? "Signing in…" : "Sign in"}
         </button>
       </form>
-      <p className="mt-4 text-sm text-muted-foreground">
-        No account?{" "}
-        <Link href="/register" className="text-primary hover:underline">
-          Create one
+
+      <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground flex-wrap gap-2">
+        <p>
+          No account?{" "}
+          <Link href="/register" className="text-primary hover:underline font-medium">
+            Create one
+          </Link>
+        </p>
+        <Link href="/login-otp" className="text-primary hover:underline font-medium">
+          Sign In with Email OTP
         </Link>
-      </p>
+      </div>
 
       {/* Email Verification Modal */}
       {showVerifyModal && (

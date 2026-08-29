@@ -103,6 +103,7 @@ export async function initializeDatabase() {
     // Add mrp_cents + selling_price_cents (V3 migration)
     await safeAddColumn(connection, "courses", "mrp_cents", "INT NOT NULL DEFAULT 0");
     await safeAddColumn(connection, "courses", "selling_price_cents", "INT NOT NULL DEFAULT 0");
+    await safeAddColumn(connection, "courses", "manual_enrollment_count", "INT NULL DEFAULT NULL");
     // Migrate existing price_cents → mrp_cents and selling_price_cents for rows that haven't been migrated
     await connection.query(
       "UPDATE courses SET mrp_cents = price_cents, selling_price_cents = price_cents WHERE mrp_cents = 0 AND selling_price_cents = 0 AND price_cents > 0"
@@ -298,6 +299,26 @@ export async function initializeDatabase() {
     // ── V3 Migrations: site_settings ──
     await safeAddColumn(connection, "site_settings", "coupons_enabled", "BOOLEAN NOT NULL DEFAULT FALSE");
     await safeAddColumn(connection, "site_settings", "referrals_enabled", "BOOLEAN NOT NULL DEFAULT FALSE");
+    await safeAddColumn(connection, "site_settings", "primary_color", "VARCHAR(50) NULL");
+    await safeAddColumn(connection, "site_settings", "accent_color", "VARCHAR(50) NULL");
+    await safeAddColumn(connection, "site_settings", "contact_phone", "VARCHAR(50) NULL");
+    await safeAddColumn(connection, "site_settings", "address", "TEXT NULL");
+    await safeAddColumn(connection, "site_settings", "seo_title", "VARCHAR(255) NULL");
+    await safeAddColumn(connection, "site_settings", "seo_description", "TEXT NULL");
+    await safeAddColumn(connection, "site_settings", "seo_keywords", "TEXT NULL");
+    await safeAddColumn(connection, "site_settings", "og_image_url", "VARCHAR(500) NULL");
+    await safeAddColumn(connection, "site_settings", "footer_text", "TEXT NULL");
+    await safeAddColumn(connection, "site_settings", "terms_url", "VARCHAR(255) NULL");
+    await safeAddColumn(connection, "site_settings", "privacy_url", "VARCHAR(255) NULL");
+    await safeAddColumn(connection, "site_settings", "refund_url", "VARCHAR(255) NULL");
+    await safeAddColumn(connection, "site_settings", "facebook_url", "VARCHAR(255) NULL");
+    await safeAddColumn(connection, "site_settings", "twitter_url", "VARCHAR(255) NULL");
+    await safeAddColumn(connection, "site_settings", "youtube_url", "VARCHAR(255) NULL");
+    await safeAddColumn(connection, "site_settings", "instagram_url", "VARCHAR(255) NULL");
+    await safeAddColumn(connection, "site_settings", "linkedin_url", "VARCHAR(255) NULL");
+    await safeAddColumn(connection, "site_settings", "whatsapp_number", "VARCHAR(50) NULL");
+    await safeAddColumn(connection, "site_settings", "google_analytics_id", "VARCHAR(100) NULL");
+    await safeAddColumn(connection, "site_settings", "meta_pixel_id", "VARCHAR(100) NULL");
 
     await connection.query(`
       CREATE TABLE IF NOT EXISTS email_templates (
@@ -632,6 +653,7 @@ export async function initializeDatabase() {
       { id: "tpl-8", event: "ACCOUNT_VERIFICATION", name: "Account Verification", subject: "Verify your account", title: "Verify your account", body: "Tap the link to verify: {{link}}" },
       { id: "tpl-9", event: "ADMIN_NOTIFICATION", name: "Admin Notification", subject: "New activity on {{siteName}}", title: "Heads up", body: "{{message}}" },
       { id: "tpl-10", event: "CUSTOM_BROADCAST", name: "Custom Broadcast", subject: "{{subject}}", title: "{{title}}", body: "{{body}}" },
+      { id: "tpl-11", event: "LOGIN_OTP", name: "Login OTP", subject: "Your Login Code: {{otp}}", title: "Login Verification Code", body: "Your one-time login verification code is: {{otp}}\n\nThis code expires in 5 minutes. Please do not share this code with anyone." },
     ];
 
     for (const t of templates) {

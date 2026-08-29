@@ -8,6 +8,7 @@ import {
   testEmailSenderAction,
 } from "@/app/(admin)/actions";
 import type { EmailSender } from "@/lib/settings";
+import { PasswordInput } from "@/components/ui/password-input";
 
 export function EmailSendersClient({ initialSenders }: { initialSenders: EmailSender[] }) {
   const [showAddModal, setShowAddModal] = useState(false);
@@ -160,7 +161,7 @@ export function EmailSendersClient({ initialSenders }: { initialSenders: EmailSe
                 </label>
                 <label className="block">
                   <span className="text-xs font-medium">SMTP Password</span>
-                  <input name="smtpPassword" type="password" className="mt-1 w-full rounded-md border px-3 py-2 text-sm font-mono" />
+                  <PasswordInput name="smtpPassword" className="mt-1 font-mono" />
                 </label>
               </div>
 
@@ -237,7 +238,7 @@ export function EmailSendersClient({ initialSenders }: { initialSenders: EmailSe
                 </label>
                 <label className="block">
                   <span className="text-xs font-medium">SMTP Password</span>
-                  <input name="smtpPassword" type="password" defaultValue={editingSender.smtp_password} className="mt-1 w-full rounded-md border px-3 py-2 text-sm font-mono" />
+                  <PasswordInput name="smtpPassword" defaultValue={editingSender.smtp_password} className="mt-1 font-mono" />
                 </label>
               </div>
 

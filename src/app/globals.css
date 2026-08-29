@@ -16,8 +16,8 @@
     --secondary-foreground: 34 18% 10%;
     --muted: 36 20% 93%;
     --muted-foreground: 32 8% 40%; /* #6E665E */
-    --accent: 0 0% 17%;         /* Charcoal */
-    --accent-foreground: 0 0% 100%;
+    --accent: 36 20% 92%;       /* Soft warm tint for hover states #EDE8E1 */
+    --accent-foreground: 34 18% 10%; /* Dark text on hover */
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
     --border: 34 20% 89%;       /* #EAE4DC */

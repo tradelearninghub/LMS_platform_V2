@@ -271,7 +271,7 @@ export function BuyForm({
         <button
           type="submit"
           disabled={isPending || uploading || !screenshotUrl}
-          className="w-full rounded-md bg-accent px-4 py-3 text-accent-foreground font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
+          className="w-full rounded-md bg-primary px-4 py-3 text-primary-foreground font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
         >
           {isPending ? "Submitting…" : uploading ? "Uploading image…" : !screenshotUrl ? "Upload screenshot to submit" : `Submit Order (${formatCurrency(currentFinalAmount, currency)})`}
         </button>
