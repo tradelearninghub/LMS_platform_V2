@@ -154,9 +154,14 @@ export async function registerAction(
   );
 
   // Send verification email
-  const appUrl = process.env.APP_URL || "http://localhost:3000";
+  const appUrl = process.env.NEXTAUTH_URL || process.env.APP_URL || "http://localhost:3000";
   const link = `${appUrl}/verify-email?token=${token}&email=${encodeURIComponent(parsed.data.email)}`;
-  await sendEventEmail("REGISTRATION", parsed.data.email, { link });
+  await sendEventEmail("REGISTRATION", parsed.data.email, {
+    user_name: parsed.data.name,
+    user_email: parsed.data.email,
+    verification_link: link,
+    link,
+  });
 
   return { success: "Verification email sent. Please check your inbox." };
 }
@@ -168,7 +173,7 @@ export async function resendVerificationAction(
   const email = formData.get("email") as string;
   if (!email) return { error: "Email is required" };
 
-  const user = await queryOne("SELECT status FROM users WHERE email = ?", [email]);
+  const user = await queryOne("SELECT name, status FROM users WHERE email = ?", [email]);
   if (!user) return { error: "No account found with this email." };
   if (user.status !== "PENDING_VERIFICATION") return { error: "Account is already verified or active." };
 
@@ -182,9 +187,14 @@ export async function resendVerificationAction(
     [email, token, expires]
   );
 
-  const appUrl = process.env.APP_URL || "http://localhost:3000";
+  const appUrl = process.env.NEXTAUTH_URL || process.env.APP_URL || "http://localhost:3000";
   const link = `${appUrl}/verify-email?token=${token}&email=${encodeURIComponent(email)}`;
-  await sendEventEmail("REGISTRATION", email, { link });
+  await sendEventEmail("REGISTRATION", email, {
+    user_name: user.name || "Student",
+    user_email: email,
+    verification_link: link,
+    link,
+  });
 
   return { success: "Verification email sent. Please check your inbox." };
 }
@@ -199,7 +209,7 @@ export async function forgotPasswordAction(
     return { error: parsed.error.flatten().fieldErrors.email?.[0] };
   }
 
-  const user = await queryOne("SELECT id FROM users WHERE email = ?", [parsed.data.email]);
+  const user = await queryOne("SELECT id, name FROM users WHERE email = ?", [parsed.data.email]);
   if (!user) {
     // Return success message even if email doesn't exist for security
     return { success: "If that email exists, we have sent a password reset link." };
@@ -214,9 +224,14 @@ export async function forgotPasswordAction(
     [resetId, user.id, token, expiresAt]
   );
 
-  const appUrl = process.env.APP_URL || "http://localhost:3000";
+  const appUrl = process.env.NEXTAUTH_URL || process.env.APP_URL || "http://localhost:3000";
   const link = `${appUrl}/reset-password?token=${token}`;
-  await sendEventEmail("PASSWORD_RESET", parsed.data.email, { link });
+  await sendEventEmail("PASSWORD_RESET", parsed.data.email, {
+    user_name: user.name || "Student",
+    user_email: parsed.data.email,
+    reset_link: link,
+    link,
+  });
 
   return { success: "If that email exists, we have sent a password reset link." };
 }
@@ -281,7 +296,13 @@ export async function sendOtpAction(
     [`otp:${parsed.data.email}`, otp, expires]
   );
 
-  await sendEventEmail("LOGIN_OTP", parsed.data.email, { otp, link: otp });
+  await sendEventEmail("LOGIN_OTP", parsed.data.email, {
+    user_name: user.name || "Student",
+    user_email: parsed.data.email,
+    otp_code: otp,
+    otp,
+    link: otp,
+  });
 
   return { success: "OTP sent. Check your email inbox." };
 }

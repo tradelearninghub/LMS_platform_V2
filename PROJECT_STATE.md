@@ -130,6 +130,7 @@ c:\Users\aloks\Work\LMS\LMS_v2
 │   ├── lib/                   # Shared utility modules & DB configuration
 │   │   ├── db-init.ts         # MySQL table schema creation scripts & initial data seeds
 │   │   ├── db.ts              # MySQL connection pool singleton & execution wrappers (`query`, `queryOne`, `execute`)
+│   │   ├── email-variables.ts # Centralized email template variable registry & substitution engine
 │   │   ├── email.ts           # Nodemailer transport builder & HTML template compilation engine
 │   │   ├── guards.ts          # Server-side authentication guards (`requireUser`, `requireAdmin`)
 │   │   ├── settings.ts        # Singleton DB settings fetchers (`getSiteSettings`, `getPaymentSettings`, `getEmailSettings`)

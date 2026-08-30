@@ -75,78 +75,111 @@ export async function sendEmail({ to, subject, html, templateId, senderId }: Sen
   }
 }
 
+import { replaceTemplateVariables } from "./email-variables";
+
 /**
- * Compiles visual template blocks into plain HTML.
+ * Compiles visual template blocks into plain HTML with variable substitution.
  */
-export function compileTemplate(blocksJson: string, variables: Record<string, string>): string {
+export function compileTemplate(
+  blocksJson: string,
+  variables: Record<string, any>,
+  event: string = ""
+): string {
   try {
-    const blocks = JSON.parse(blocksJson);
+    const raw = (blocksJson || "").trim();
+    if (!raw) return "";
+
+    // If it's raw HTML rather than a JSON array of blocks
+    if (!raw.startsWith("[")) {
+      return replaceTemplateVariables(raw, event, variables);
+    }
+
+    const blocks = JSON.parse(raw);
     let html = "";
+    const siteName = variables.site_name || variables.siteName || "Trade Learning Hub";
+
     for (const b of blocks) {
       if (b.type === "header") {
-        html += `<div style="text-align: center; padding: 20px; border-bottom: 1px solid #eaeaea;"><h2 style="margin: 0; color: #111;">${variables.siteName || "Trade Learning Hub"}</h2></div>`;
+        html += `<div style="text-align: center; padding: 20px; border-bottom: 1px solid #eaeaea;"><h2 style="margin: 0; color: #111; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">${siteName}</h2></div>`;
       } else if (b.type === "title") {
-        let text = b.text || "";
-        for (const [k, v] of Object.entries(variables)) {
-          text = text.replace(new RegExp(`{{${k}}}`, "g"), v);
-        }
-        html += `<div style="padding: 20px 0;"><h1 style="margin: 0; font-size: 24px; color: #111; text-align: center;">${text}</h1></div>`;
+        const text = replaceTemplateVariables(b.text || "", event, variables);
+        html += `<div style="padding: 20px 0;"><h1 style="margin: 0; font-size: 22px; font-weight: 700; color: #111; text-align: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">${text}</h1></div>`;
+      } else if (b.type === "subtitle") {
+        const text = replaceTemplateVariables(b.text || "", event, variables);
+        html += `<div style="padding: 5px 0 15px 0; text-align: center;"><p style="margin: 0; font-size: 14px; color: #666; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">${text}</p></div>`;
       } else if (b.type === "text") {
-        let text = b.text || "";
-        for (const [k, v] of Object.entries(variables)) {
-          text = text.replace(new RegExp(`{{${k}}}`, "g"), v);
-        }
-        html += `<div style="padding: 10px 0; line-height: 1.6; color: #444;"><p style="margin: 0;">${text}</p></div>`;
+        const text = replaceTemplateVariables(b.text || "", event, variables);
+        html += `<div style="padding: 10px 0; line-height: 1.6; color: #333; font-size: 15px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;"><p style="margin: 0; white-space: pre-line;">${text}</p></div>`;
       } else if (b.type === "button") {
-        let url = b.url || "";
-        for (const [k, v] of Object.entries(variables)) {
-          url = url.replace(new RegExp(`{{${k}}}`, "g"), v);
-        }
-        html += `<div style="padding: 20px 0; text-align: center;"><a href="${url}" style="background-color: #2B2B2B; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 500; display: inline-block;">${b.text || "Click Here"}</a></div>`;
+        const url = replaceTemplateVariables(b.url || "", event, variables);
+        const text = replaceTemplateVariables(b.text || "Click Here", event, variables);
+        html += `<div style="padding: 20px 0; text-align: center;"><a href="${url}" style="background-color: #2B2B2B; color: #ffffff; padding: 12px 28px; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 14px; display: inline-block; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">${text}</a></div>`;
       } else if (b.type === "footer") {
-        let text = b.text || "";
-        for (const [k, v] of Object.entries(variables)) {
-          text = text.replace(new RegExp(`{{${k}}}`, "g"), v);
-        }
-        html += `<div style="padding: 20px 0; border-top: 1px solid #eaeaea; font-size: 12px; color: #888; text-align: center;"><p style="margin: 0;">${text}</p></div>`;
+        const text = replaceTemplateVariables(b.text || "", event, variables);
+        html += `<div style="padding: 20px 0; border-top: 1px solid #eaeaea; font-size: 12px; color: #888; text-align: center; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;"><p style="margin: 0;">${text}</p></div>`;
       }
     }
-    return `<div style="max-width: 600px; margin: 0 auto; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">${html}</div>`;
+
+    const fullHtml = `<div style="max-width: 600px; margin: 0 auto; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 24px; border: 1px solid #e5e5e5; border-radius: 8px; background-color: #ffffff;">${html}</div>`;
+    return replaceTemplateVariables(fullHtml, event, variables);
   } catch (e) {
-    return `<div>${blocksJson}</div>`;
+    return replaceTemplateVariables(blocksJson || "", event, variables);
   }
 }
 
 /**
- * Loads a template by event key, compiles it, and dispatches the email.
- * Now resolves the sender from the template's sender_id (V3 multi-sender support).
+ * Loads a template by event key, compiles it with all runtime variable substitutions, and dispatches the email.
  */
-export async function sendEventEmail(event: string, to: string, variables: Record<string, string>) {
-  const template = await queryOne("SELECT * FROM email_templates WHERE event = ? AND is_active = 1", [event]);
+export async function sendEventEmail(
+  event: string,
+  to: string,
+  variables: Record<string, any> = {}
+) {
+  const template = await queryOne(
+    "SELECT * FROM email_templates WHERE event = ? AND is_active = 1",
+    [event]
+  );
   if (!template) {
-    return { ok: false, error: "Template not found or inactive" };
+    return { ok: false, error: `Template '${event}' not found or inactive` };
   }
 
+  // Retrieve site settings for global template tags
   const site = await queryOne("SELECT site_name FROM site_settings WHERE id = 'default'");
   const siteName = site?.site_name || "Trade Learning Hub";
+  const appUrl = process.env.NEXTAUTH_URL || process.env.APP_URL || "http://tradelearninghub.com";
+
+  // Auto-enrich user_name if missing and user exists in DB
+  let resolvedUserName = variables.user_name || variables.userName || variables.name;
+  if (!resolvedUserName && to) {
+    const user = await queryOne("SELECT name FROM users WHERE email = ?", [to]);
+    if (user?.name) {
+      resolvedUserName = user.name;
+    }
+  }
 
   const allVars = {
+    site_name: siteName,
     siteName,
+    app_url: appUrl,
+    appUrl,
+    user_email: to,
+    userEmail: to,
+    email: to,
+    user_name: resolvedUserName || "Student",
+    userName: resolvedUserName || "Student",
+    name: resolvedUserName || "Student",
+    year: new Date().getFullYear().toString(),
     ...variables,
   };
 
-  let subject = template.subject;
-  for (const [k, v] of Object.entries(allVars)) {
-    subject = subject.replace(new RegExp(`{{${k}}}`, "g"), v);
-  }
-
-  const html = compileTemplate(template.blocks_json, allVars);
+  const subject = replaceTemplateVariables(template.subject, event, allVars);
+  const html = compileTemplate(template.blocks_json, allVars, event);
 
   return sendEmail({
     to,
     subject,
     html,
     templateId: template.id,
-    senderId: template.sender_id || null, // V3: per-template sender
+    senderId: template.sender_id || null,
   });
 }

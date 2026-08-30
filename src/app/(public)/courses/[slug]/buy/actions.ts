@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import { queryOne, execute } from "@/lib/db";
 import { generateOrderNumber } from "@/lib/utils";
 import { validateCoupon } from "@/lib/coupons";
+import { sendEventEmail } from "@/lib/email";
 import crypto from "crypto";
 
 export type OrderState = {
@@ -86,6 +87,35 @@ export async function createOrderAction(
       studentNotes,
     ]
   );
+
+  // Send PAYMENT_RECEIVED notification to student
+  try {
+    const user = await queryOne("SELECT name, email FROM users WHERE id = ?", [session.user.id]);
+    if (user?.email) {
+      const formattedAmount = (finalAmountCents / 100).toLocaleString("en-IN", {
+        style: "currency",
+        currency: currency || "INR",
+      });
+      const orderDate = new Date().toLocaleDateString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      });
+
+      await sendEventEmail("PAYMENT_RECEIVED", user.email, {
+        user_name: payerName || user.name || "Student",
+        user_email: user.email,
+        course_name: course.title,
+        course_title: course.title,
+        amount: formattedAmount,
+        order_number: orderNumber,
+        transaction_id: transactionId,
+        order_date: orderDate,
+      });
+    }
+  } catch (e) {
+    console.error("[BuyAction] Failed to send PAYMENT_RECEIVED email:", e);
+  }
 
   return { success: true, orderNumber };
 }

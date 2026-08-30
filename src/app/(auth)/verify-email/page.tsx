@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { queryOne, execute } from "@/lib/db";
+import { sendEventEmail } from "@/lib/email";
 import { CheckCircle, XCircle } from "lucide-react";
 
 interface VerifyEmailProps {
@@ -82,6 +83,21 @@ export default async function VerifyEmailPage({ searchParams }: VerifyEmailProps
     "DELETE FROM verification_tokens WHERE identifier = ? AND token = ?",
     [email, token]
   );
+
+  // Trigger WELCOME email
+  try {
+    const verifiedUser = await queryOne("SELECT name, email FROM users WHERE email = ?", [email]);
+    if (verifiedUser) {
+      const appUrl = process.env.NEXTAUTH_URL || process.env.APP_URL || "http://tradelearninghub.com";
+      await sendEventEmail("WELCOME", email, {
+        user_name: verifiedUser.name || "Student",
+        user_email: email,
+        login_url: `${appUrl}/login`,
+      });
+    }
+  } catch (e) {
+    console.error("[VerifyEmail] Failed to send welcome email:", e);
+  }
 
   return (
     <div className="text-center">

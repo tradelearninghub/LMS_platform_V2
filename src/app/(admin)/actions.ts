@@ -5,6 +5,7 @@ import { requireAdmin } from "@/lib/guards";
 import { slugify } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
 import { sendEventEmail } from "@/lib/email";
+import { TEMPLATE_VARIABLES_REGISTRY } from "@/lib/email-variables";
 import crypto from "crypto";
 import nodemailer from "nodemailer";
 
@@ -242,8 +243,28 @@ export async function approveOrderAction(orderId: string) {
 
   // Send confirmation email
   if (user?.email && course?.title) {
+    const appUrl = process.env.NEXTAUTH_URL || process.env.APP_URL || "http://tradelearninghub.com";
+    const formattedAmount = ((order.final_amount_cents || order.amount_cents) / 100).toLocaleString("en-IN", {
+      style: "currency",
+      currency: order.currency || "INR",
+    });
+    const orderDate = new Date(order.created_at || Date.now()).toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+
     await sendEventEmail("PAYMENT_APPROVED", user.email, {
-      courseTitle: course.title,
+      user_name: order.payer_name || user.name || "Student",
+      user_email: user.email,
+      course_name: course.title,
+      course_title: course.title,
+      amount: formattedAmount,
+      order_number: order.order_number,
+      transaction_id: order.transaction_id || "—",
+      order_date: orderDate,
+      course_url: `${appUrl}/learn/${course.slug}`,
+      link: `${appUrl}/learn/${course.slug}`,
     });
   }
 
@@ -257,7 +278,8 @@ export async function rejectOrderAction(orderId: string, reason?: string) {
   const order = await queryOne("SELECT * FROM orders WHERE id = ?", [orderId]);
   if (!order) return { error: "Invalid order" };
 
-  const user = await queryOne("SELECT email FROM users WHERE id = ?", [order.user_id]);
+  const user = await queryOne("SELECT name, email FROM users WHERE id = ?", [order.user_id]);
+  const course = await queryOne("SELECT title, slug FROM courses WHERE id = ?", [order.course_id]);
 
   const rejectionReason = reason || "Payment could not be verified";
 
@@ -267,7 +289,20 @@ export async function rejectOrderAction(orderId: string, reason?: string) {
   );
 
   if (user?.email) {
+    const formattedAmount = ((order.final_amount_cents || order.amount_cents) / 100).toLocaleString("en-IN", {
+      style: "currency",
+      currency: order.currency || "INR",
+    });
+
     await sendEventEmail("PAYMENT_REJECTED", user.email, {
+      user_name: order.payer_name || user.name || "Student",
+      user_email: user.email,
+      course_name: course?.title || "Course",
+      course_title: course?.title || "Course",
+      amount: formattedAmount,
+      order_number: order.order_number,
+      transaction_id: order.transaction_id || "—",
+      rejection_reason: rejectionReason,
       reason: rejectionReason,
     });
   }
@@ -298,6 +333,20 @@ export async function manualEnrollAction(_prev: unknown, formData: FormData) {
      ON DUPLICATE KEY UPDATE status = 'ACTIVE', source = 'manual'`,
     [id, userId, courseId]
   );
+
+  const user = await queryOne("SELECT name, email FROM users WHERE id = ?", [userId]);
+  const course = await queryOne("SELECT title, slug FROM courses WHERE id = ?", [courseId]);
+  if (user?.email && course?.title) {
+    const appUrl = process.env.NEXTAUTH_URL || process.env.APP_URL || "http://tradelearninghub.com";
+    await sendEventEmail("COURSE_ENROLLMENT", user.email, {
+      user_name: user.name || "Student",
+      user_email: user.email,
+      course_name: course.title,
+      course_title: course.title,
+      course_url: `${appUrl}/learn/${course.slug}`,
+      link: `${appUrl}/learn/${course.slug}`,
+    });
+  }
 
   revalidatePath("/admin/enrollments");
   return { success: true };
@@ -649,6 +698,31 @@ export async function updateEmailTemplateAction(_prev: unknown, formData: FormDa
 
   revalidatePath("/admin/email-templates");
   return { success: true };
+}
+
+export async function sendTestTemplateEmailAction(templateId: string, recipientEmail: string) {
+  const admin = await requireAdmin();
+  const template = await queryOne("SELECT * FROM email_templates WHERE id = ?", [templateId]);
+  if (!template) return { error: "Template not found" };
+
+  const targetEmail = (recipientEmail || "").trim() || admin.email;
+  if (!targetEmail) return { error: "Target email address is required." };
+
+  const meta = TEMPLATE_VARIABLES_REGISTRY[template.event];
+  const sampleVars: Record<string, string> = {};
+  if (meta) {
+    for (const v of meta.variables) {
+      const cleanKey = v.tag.replace(/[{}]/g, "");
+      sampleVars[cleanKey] = v.example;
+    }
+  }
+
+  const result = await sendEventEmail(template.event, targetEmail, sampleVars);
+  if (!result.ok) {
+    return { error: result.error || "Failed to dispatch test email." };
+  }
+
+  return { success: true, message: `Test email successfully sent to ${targetEmail} with mock data substitution.` };
 }
 
 // ── Homepage sections ───────────────────────────────────────────────────────
