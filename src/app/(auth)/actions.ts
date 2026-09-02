@@ -346,29 +346,21 @@ export interface ForgotEmailState {
   maskedEmail?: string;
 }
 
-function maskEmail(email: string): string {
-  const [local, domain] = email.split("@");
-  if (!domain) return "***@***";
+export function maskEmail(email: string): string {
+  const atIndex = email.indexOf("@");
+  if (atIndex === -1) return email;
 
-  let maskedLocal = "";
-  if (local.length <= 2) {
-    maskedLocal = local[0] + "*";
-  } else {
-    maskedLocal = local[0] + "***" + local[local.length - 1];
-  }
+  const local = email.slice(0, atIndex);
+  const domain = email.slice(atIndex + 1);
 
-  const domainParts = domain.split(".");
-  const domainName = domainParts[0] || "";
-  const tld = domainParts.slice(1).join(".");
+  // Pattern: 1 letter visible, 2 stars, 1 letter visible, 2 stars... keeping the exact length of the email local part
+  // e.g. "512834o5" -> "5**8**o*"
+  const maskedLocal = local
+    .split("")
+    .map((char, index) => (index % 3 === 0 ? char : "*"))
+    .join("");
 
-  let maskedDomain = "";
-  if (domainName.length <= 2) {
-    maskedDomain = domainName[0] + "*";
-  } else {
-    maskedDomain = domainName[0] + "***";
-  }
-
-  return `${maskedLocal}@${maskedDomain}${tld ? "." + tld : ""}`;
+  return `${maskedLocal}@${domain}`;
 }
 
 export async function lookupEmailAction(
