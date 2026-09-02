@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifySignedPdfToken } from "@/lib/pdf-security";
 import { queryOne } from "@/lib/db";
-import path from "path";
 import fs from "fs/promises";
+import { findPdfFile } from "@/lib/storage";
 
 export async function GET(
   request: NextRequest,
@@ -40,7 +40,10 @@ export async function GET(
   }
 
   // 4. Read and stream the PDF from private storage
-  const pdfPath = path.resolve(process.cwd(), "data", "pdf-lessons", lesson.pdf_file_key);
+  const pdfPath = await findPdfFile(lesson.pdf_file_key);
+  if (!pdfPath) {
+    return new NextResponse("PDF file not found in storage", { status: 404 });
+  }
 
   try {
     const fileBuffer = await fs.readFile(pdfPath);
@@ -55,6 +58,6 @@ export async function GET(
     });
   } catch (err) {
     console.error("PDF file read error:", err);
-    return new NextResponse("PDF file not found", { status: 404 });
+    return new NextResponse("PDF file read error", { status: 500 });
   }
 }

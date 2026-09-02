@@ -43,6 +43,9 @@ prisma/migrations/
 .vscode/
 .idea/
 
-# uploads (keep .gitkeep)
+# uploads and runtime data
 /public/uploads/*
 !/public/uploads/.gitkeep
+/data/
+/storage/
+*.pdf

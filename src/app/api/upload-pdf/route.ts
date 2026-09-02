@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
-import path from "path";
-import fs from "fs/promises";
 import crypto from "crypto";
-
-const PDF_DIR = path.resolve(process.cwd(), "data", "pdf-lessons");
+import { savePrivatePdf } from "@/lib/storage";
 
 export async function POST(request: NextRequest) {
   const session = await auth();
@@ -23,17 +20,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Ensure storage directory exists
-    await fs.mkdir(PDF_DIR, { recursive: true });
-
     // Generate a unique filename
     const ext = ".pdf";
     const fileKey = `${crypto.randomUUID()}${ext}`;
-    const filePath = path.join(PDF_DIR, fileKey);
 
-    // Write file to private storage
+    // Write file to persistent private storage
     const buffer = Buffer.from(await file.arrayBuffer());
-    await fs.writeFile(filePath, buffer);
+    await savePrivatePdf(fileKey, buffer);
 
     return NextResponse.json({
       success: true,

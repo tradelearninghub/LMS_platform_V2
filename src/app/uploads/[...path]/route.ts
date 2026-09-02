@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import path from "path";
-import fs from "fs";
 import { promises as fsPromises } from "fs";
+import { findUploadedFile } from "@/lib/storage";
 
 const MIME_TYPES: Record<string, string> = {
   ".png": "image/png",
@@ -29,31 +29,19 @@ export async function GET(
   const ext = path.extname(safePath).toLowerCase();
   const contentType = MIME_TYPES[ext] || "application/octet-stream";
 
-  // Check possible storage locations:
-  // 1. UPLOAD_DIR env if configured (persistent mount / custom directory)
-  // 2. public/uploads (standard)
-  // 3. data/uploads (persistent data folder)
-  const candidateDirs = [
-    process.env.UPLOAD_DIR ? path.resolve(process.env.UPLOAD_DIR) : null,
-    path.resolve(process.cwd(), "public", "uploads"),
-    path.resolve(process.cwd(), "data", "uploads"),
-  ].filter(Boolean) as string[];
-
-  for (const dir of candidateDirs) {
-    const fullPath = path.join(dir, safePath);
-    if (fs.existsSync(fullPath)) {
-      try {
-        const fileBuffer = await fsPromises.readFile(fullPath);
-        return new NextResponse(fileBuffer, {
-          headers: {
-            "Content-Type": contentType,
-            "Cache-Control": "public, max-age=31536000, immutable",
-            "Content-Length": fileBuffer.length.toString(),
-          },
-        });
-      } catch (err) {
-        console.error("Error reading file:", err);
-      }
+  const fullPath = await findUploadedFile(safePath);
+  if (fullPath) {
+    try {
+      const fileBuffer = await fsPromises.readFile(fullPath);
+      return new NextResponse(fileBuffer, {
+        headers: {
+          "Content-Type": contentType,
+          "Cache-Control": "public, max-age=31536000, immutable",
+          "Content-Length": fileBuffer.length.toString(),
+        },
+      });
+    } catch (err) {
+      console.error("Error reading file:", err);
     }
   }
 
